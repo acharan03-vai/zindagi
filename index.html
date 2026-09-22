@@ -1,0 +1,5707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>AEROVANTA - Flight Simulator</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: #030712;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Arial,
+                sans-serif;
+            color: #ffffff;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            touch-action: none;
+        }
+
+        #canvas-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* =========================================================
+           AEROVANTA INTRO
+           ========================================================= */
+
+        #aerovanta-intro {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: #030712;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            touch-action: none;
+            opacity: 1;
+            transition: opacity 0.45s ease;
+        }
+
+        #intro-content {
+            text-align: center;
+            transform: translateY(0);
+            transition:
+                transform 0.55s cubic-bezier(.2,.8,.2,1),
+                opacity 0.45s ease;
+            pointer-events: none;
+        }
+
+        #intro-title {
+            font-size: clamp(34px, 6vw, 78px);
+            font-weight: 900;
+            letter-spacing: 0.22em;
+            color: #ffffff;
+            text-shadow:
+                0 0 10px rgba(255,255,255,0.18),
+                0 0 35px rgba(56,189,248,0.18);
+            margin-left: 0.22em;
+        }
+
+        #intro-subtitle {
+            margin-top: 18px;
+            font-size: clamp(9px, 1.2vw, 13px);
+            font-weight: 700;
+            letter-spacing: 0.38em;
+            color: #38bdf8;
+            margin-left: 0.38em;
+            opacity: 0.85;
+            animation: introPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes introPulse {
+
+            0%, 100% {
+                opacity: 0.45;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+        }
+
+        #intro-flash {
+            position: absolute;
+            inset: 0;
+            background: #ffffff;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #intro-cinematic-title {
+            position: fixed;
+            inset: 0;
+            z-index: 1001;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        #intro-cinematic-title span {
+            font-size: clamp(38px, 7vw, 100px);
+            font-weight: 900;
+            letter-spacing: 0.24em;
+            margin-left: 0.24em;
+            color: #ffffff;
+            text-shadow:
+                0 0 12px rgba(255,255,255,0.5),
+                0 0 40px rgba(56,189,248,0.45),
+                0 0 90px rgba(56,189,248,0.25);
+            transform: scale(0.85);
+            transition: transform 0.7s ease;
+        }
+
+        /* =========================================================
+           TOP TELEMETRY HUD
+           ========================================================= */
+
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 56px;
+            background: linear-gradient(
+                180deg,
+                rgba(8, 14, 26, 0.9) 0%,
+                rgba(8, 14, 26, 0.2) 100%
+            );
+            border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #38bdf8;
+            text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+        }
+
+        .brand-sub {
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .telemetry-group {
+            display: flex;
+            gap: 28px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .telem-box {
+            text-align: right;
+        }
+
+        .telem-lbl {
+            font-size: 9px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .telem-val {
+            font-size: 17px;
+            font-weight: 800;
+            color: #38bdf8;
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+        }
+
+        /* =========================================================
+           THROTTLE CONTROL PANEL
+           ========================================================= */
+
+        #throttle-panel {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 8px;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 20px rgba(0,0,0,0.6);
+        }
+
+        .throttle-lbl {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #94a3b8;
+        }
+
+        .slider-wrapper {
+            height: 180px;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type=range][orient=vertical] {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 8px;
+            height: 160px;
+            padding: 0 5px;
+            accent-color: #38bdf8;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .speed-readout {
+            font-size: 11px;
+            font-weight: 800;
+            color: #a3e635;
+            font-family: monospace;
+        }
+
+        /* =========================================================
+           BOTTOM CONTROL BAR
+           ========================================================= */
+
+        #bottom-bar {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+        }
+
+        .ctrl-btn {
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .ctrl-btn:hover {
+            background: #334155;
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+
+        .btn-connect {
+            background: #a3e635;
+            color: #0f172a;
+            border: none;
+            font-weight: 800;
+        }
+
+        .btn-connect:hover {
+            background: #bef264;
+            color: #0f172a;
+        }
+
+        /* =========================================================
+           OVERLAYS
+           ========================================================= */
+
+        #gameover-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 30;
+            background: rgba(15, 23, 42, 0.92);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            touch-action: auto;
+        }
+
+        .go-title {
+            font-size: 42px;
+            font-weight: 900;
+            color: #ef4444;
+            letter-spacing: 3px;
+            margin-bottom: 8px;
+        }
+
+        .go-sub {
+            font-size: 16px;
+            color: #cbd5e1;
+            margin-bottom: 24px;
+            font-family: monospace;
+        }
+
+        .btn-restart-large {
+            background: #ef4444;
+            color: #ffffff;
+            border: none;
+            padding: 12px 32px;
+            font-size: 14px;
+            font-weight: 800;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+            touch-action: manipulation;
+        }
+
+        #controls-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #0f172a;
+            border: 1px solid #38bdf8;
+            padding: 20px 30px;
+            border-radius: 8px;
+            z-index: 40;
+            display: none;
+            width: 360px;
+            max-width: 90vw;
+            touch-action: auto;
+        }
+
+        #controls-modal h3 {
+            color: #38bdf8;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        #controls-modal p {
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+
+        /* =========================================================
+           MOBILE
+           ========================================================= */
+
+        @media (max-width: 700px) {
+
+            #top-bar {
+                height: 48px;
+                padding: 0 10px;
+            }
+
+            .brand-title {
+                font-size: 10px;
+                letter-spacing: 1px;
+            }
+
+            .brand-sub {
+                display: none;
+            }
+
+            .telemetry-group {
+                gap: 10px;
+            }
+
+            .telem-lbl {
+                font-size: 7px;
+            }
+
+            .telem-val {
+                font-size: 11px;
+            }
+
+            #throttle-panel {
+                left: 8px;
+                padding: 10px 8px;
+                gap: 8px;
+            }
+
+            .slider-wrapper {
+                height: 150px;
+            }
+
+            input[type=range][orient=vertical] {
+                height: 135px;
+            }
+
+            #bottom-bar {
+                bottom: 8px;
+                width: calc(100% - 12px);
+                padding: 6px;
+                gap: 4px;
+                justify-content: center;
+            }
+
+            .ctrl-btn {
+                font-size: 9px;
+                padding: 8px 7px;
+            }
+
+        }
+
+
+        /* =========================================================
+           AEROVANTA 2.0 — PREMIUM GAME LAYER
+           ========================================================= */
+        :root{
+            --av-line: rgba(255,255,255,.16);
+            --av-glass: rgba(4,10,18,.58);
+            --av-white: #f4f7fb;
+            --av-muted: #9aa8b8;
+            --av-accent: #7dd3fc;
+            --av-good: #bef264;
+        }
+
+        #game-ui{
+            position:fixed; inset:0; z-index:9; pointer-events:none;
+        }
+        #mission-card{
+            position:absolute; top:78px; left:50%; transform:translateX(-50%);
+            min-width:250px; max-width:min(420px,80vw);
+            padding:10px 15px 11px; border-left:2px solid var(--av-accent);
+            background:linear-gradient(90deg,rgba(5,12,20,.78),rgba(5,12,20,.25));
+            backdrop-filter:blur(8px); opacity:0; transition:opacity .35s ease;
+            text-align:left; font-family:"Segoe UI",sans-serif;
+        }
+        #mission-card.visible{opacity:1}
+        #mission-kicker{font-size:8px;letter-spacing:2px;color:var(--av-muted);font-weight:800}
+        #mission-title{font-size:13px;letter-spacing:.7px;font-weight:800;margin-top:3px}
+        #mission-detail{font-size:10px;color:#cbd5e1;margin-top:3px}
+        #mission-progress{height:2px;background:rgba(255,255,255,.12);margin-top:8px;overflow:hidden}
+        #mission-progress i{display:block;width:0;height:100%;background:var(--av-accent);transition:width .25s}
+
+        #flight-strip{
+            position:absolute;right:20px;bottom:88px;display:flex;gap:7px;align-items:center;
+            opacity:.72;font:700 8px/1 monospace;letter-spacing:1.3px;color:#dbeafe;
+        }
+        .flight-chip{padding:7px 9px;background:rgba(3,8,15,.42);border:1px solid var(--av-line);
+            backdrop-filter:blur(7px);border-radius:3px}
+        .flight-chip b{font-size:10px;color:#fff}
+        #serial-status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#64748b;margin-right:5px}
+
+        #pause-screen{
+            position:fixed;inset:0;z-index:35;display:none;place-items:center;
+            background:rgba(2,7,13,.45);backdrop-filter:blur(7px);pointer-events:auto;
+        }
+        #pause-screen .pause-inner{text-align:center}
+        #pause-screen h2{font-size:clamp(28px,5vw,58px);letter-spacing:.18em;margin-left:.18em}
+        #pause-screen p{margin-top:10px;color:#94a3b8;font:700 9px monospace;letter-spacing:2px}
+
+        #mission-complete{
+            position:fixed;inset:0;z-index:38;display:none;place-items:center;
+            background:rgba(2,7,13,.72);backdrop-filter:blur(5px);pointer-events:auto;
+        }
+        .complete-card{text-align:center;padding:28px 34px;border-top:1px solid rgba(125,211,252,.7);
+            background:rgba(5,12,20,.78);min-width:min(380px,88vw)}
+        .complete-card .eyebrow{font:800 9px monospace;letter-spacing:3px;color:#7dd3fc}
+        .complete-card h2{margin:9px 0 5px;font-size:32px;letter-spacing:.12em}
+        .complete-card .score{font:900 20px monospace;color:#bef264}
+        .complete-card button{margin-top:18px}
+
+        #cockpit-frame{position:fixed;inset:0;z-index:8;pointer-events:none;display:none}
+        #cockpit-frame:before{content:"";position:absolute;left:0;right:0;bottom:-2px;height:18%;
+            background:linear-gradient(180deg,transparent,rgba(2,7,13,.75) 35%,rgba(2,7,13,.98));
+            clip-path:polygon(0 100%,0 55%,18% 20%,39% 7%,61% 7%,82% 20%,100% 55%,100% 100%)}
+        #cockpit-frame:after{content:"";position:absolute;left:50%;top:50%;width:18px;height:18px;
+            transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.5);border-radius:50%;
+            box-shadow:0 0 0 1px rgba(125,211,252,.15)}
+
+        .av-mobile-hint{display:none}
+        @media(max-width:700px){
+            #mission-card{top:56px;min-width:205px}
+            #flight-strip{right:8px;bottom:76px;gap:3px}
+            .flight-chip{padding:6px}
+            #throttle-panel{z-index:12}
+            .av-mobile-hint{display:block;position:absolute;right:10px;top:58px;font:700 8px monospace;color:#cbd5e1;opacity:.5}
+        }
+
+    
+        /* =========================================================
+           LARGE CHECKPOINT GUIDANCE
+           ========================================================= */
+        #checkpoint-guidance {
+            position: absolute;
+            top: 88px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+            min-width: 210px;
+            padding: 10px 18px;
+            text-align: center;
+            background: rgba(3, 12, 22, 0.72);
+            border: 1px solid rgba(56,189,248,0.72);
+            border-radius: 6px;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+
+        .checkpoint-label {
+            font-size: 9px;
+            letter-spacing: 2.5px;
+            font-weight: 800;
+            color: #7dd3fc;
+            margin-bottom: 5px;
+        }
+
+        .checkpoint-main {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            align-items: baseline;
+        }
+
+        #checkpoint-distance {
+            font-size: 20px;
+            font-weight: 900;
+            color: #ffffff;
+            font-family: monospace;
+        }
+
+        #checkpoint-direction {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            color: #bae6fd;
+        }
+
+        #checkpoint-flash {
+            position: absolute;
+            inset: 0;
+            z-index: 60;
+            pointer-events: none;
+            background: rgba(56,189,248,0.16);
+            opacity: 0;
+        }
+
+        #checkpoint-flash.active {
+            animation: checkpointSuccess .42s ease-out;
+        }
+
+        @keyframes checkpointSuccess {
+            0% { opacity: 0; }
+            18% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @media (max-width:700px) {
+            #checkpoint-guidance {
+                top: 58px;
+                min-width: 175px;
+                padding: 7px 12px;
+            }
+
+            #checkpoint-distance {
+                font-size: 16px;
+            }
+
+            .checkpoint-label {
+                font-size: 7px;
+            }
+        }
+
+</style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+</head>
+
+<body>
+
+    <!-- =========================================================
+         AEROVANTA INTRO
+         ========================================================= -->
+
+    <div id="aerovanta-intro">
+
+        <div id="intro-content">
+
+            <div id="intro-title">
+                AEROVANTA
+            </div>
+
+            <div id="intro-subtitle">
+                TOUCH ANYWHERE TO LAUNCH
+            </div>
+
+        </div>
+
+        <div id="intro-flash"></div>
+
+    </div>
+
+
+    <div id="intro-cinematic-title">
+
+        <span>
+            AEROVANTA
+        </span>
+
+    </div>
+
+
+    <div id="canvas-container"></div>
+
+
+    <!-- =========================================================
+         HUD
+         ========================================================= -->
+
+    <div id="top-bar">
+
+        <div class="brand-title">
+
+            <span>
+                FLIGHT LAB
+            </span>
+
+            <span class="brand-sub">
+                / REAL-WORLD ENGINE
+            </span>
+
+        </div>
+
+
+        <div class="telemetry-group">
+
+            <div class="telem-box">
+
+                <div class="telem-lbl">
+                    AIRSPEED
+                </div>
+
+                <div id="speed-val"
+                     class="telem-val">
+                    450 km/h
+                </div>
+
+            </div>
+
+
+            <div class="telem-box">
+
+                <div class="telem-lbl">
+                    ALTITUDE
+                </div>
+
+                <div id="alt-val"
+                     class="telem-val">
+                    85 m
+                </div>
+
+            </div>
+
+
+            <div class="telem-box">
+
+                <div class="telem-lbl">
+                    HEADING
+                </div>
+
+                <div id="heading-val"
+                     class="telem-val">
+                    000°
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         THROTTLE
+         ========================================================= -->
+
+    <div id="throttle-panel">
+
+        <div class="throttle-lbl">
+            THROTTLE
+        </div>
+
+        <div class="slider-wrapper">
+
+            <input
+                type="range"
+                id="throttle-slider"
+                min="0"
+                max="1400"
+                value="450"
+                orient="vertical">
+
+        </div>
+
+        <div class="speed-readout"
+             id="throttle-readout">
+
+            450 KM/H
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         BOTTOM BAR
+         ========================================================= -->
+
+    <div id="bottom-bar">
+
+        <button class="ctrl-btn btn-connect"
+                id="connect-btn">
+            Connect Serial
+        </button>
+
+        <button class="ctrl-btn"
+                id="recenter-btn">
+            Centre Controller
+        </button>
+
+        <button class="ctrl-btn"
+                id="view-btn">
+            View: TPP
+        </button>
+
+        <button class="ctrl-btn"
+                id="pause-btn">
+            Pause
+        </button>
+
+        <button class="ctrl-btn"
+                id="restart-bar-btn">
+            Restart
+        </button>
+
+        <button class="ctrl-btn"
+                id="controls-btn">
+            Controls
+        </button>
+
+    </div>
+
+
+
+    <div id="game-ui">
+        
+    <div id="checkpoint-guidance">
+        <div class="checkpoint-label">NEXT CHECKPOINT</div>
+        <div class="checkpoint-main">
+            <span id="checkpoint-distance">260 M</span>
+            <span id="checkpoint-direction">AHEAD</span>
+        </div>
+    </div>
+
+    <div id="checkpoint-flash"></div>
+
+<div id="mission-card">
+            <div id="mission-kicker">ACTIVE FLIGHT PLAN</div>
+            <div id="mission-title">TRACE THE SKYWAY</div>
+            <div id="mission-detail">Pass through the next navigation gate</div>
+            <div id="mission-progress"><i></i></div>
+        </div>
+        <div id="flight-strip">
+            <div class="flight-chip">DIST <b id="dist-val">0.0</b> KM</div>
+            <div class="flight-chip">SCORE <b id="score-val">000000</b></div>
+            <div class="flight-chip"><span id="serial-status-dot"></span><b id="status-val">LOCAL</b></div>
+        </div>
+    </div>
+
+    <div id="cockpit-frame"></div>
+
+    <div id="pause-screen">
+        <div class="pause-inner">
+            <h2>FLIGHT PAUSED</h2>
+            <p>PRESS P OR RESUME TO RETURN TO THE SKY</p>
+        </div>
+    </div>
+
+    <div id="mission-complete">
+        <div class="complete-card">
+            <div class="eyebrow">FLIGHT PLAN COMPLETE</div>
+            <h2>SKYWAY CLEARED</h2>
+            <div class="score" id="complete-score">000000</div>
+            <button class="ctrl-btn" id="continue-btn">CONTINUE FLIGHT</button>
+        </div>
+    </div>
+    <div class="av-mobile-hint">DRAG TO FLY • THROTTLE AT LEFT</div>
+
+    <!-- =========================================================
+         CONTROLS MODAL
+         ========================================================= -->
+
+    <div id="controls-modal">
+
+        <h3>
+            FLIGHT SIMULATOR CONTROLS
+        </h3>
+
+        <p>
+
+            • <b>A / D or Arrow Left / Right</b>:
+            Roll & Steer Left/Right<br>
+
+            • <b>W / S or Arrow Up / Down</b>:
+            Pitch Nose Down / Pitch Nose Up<br>
+
+            • <b>Shift / Ctrl (or Throttle Slider)</b>:
+            Speed Control<br>
+
+            • <b>Touch & Drag</b>:
+            Steer / Pitch<br>
+
+            • <b>MPU6050 Hardware</b>:
+            Connect serial to fly using gyro tilting!
+
+        </p>
+
+<button
+    class="ctrl-btn"
+    style="width:100%; margin-bottom:8px"
+    id="calibrate-mpu-btn">
+
+    Calibrate MPU Neutral
+
+</button>
+        
+        <button
+            class="ctrl-btn"
+            style="width:100%"
+            id="close-modal-btn">
+
+            Close
+
+        </button>
+
+    </div>
+
+
+    <!-- =========================================================
+         CRASH OVERLAY
+         ========================================================= -->
+
+    <div id="gameover-overlay">
+
+        <div class="go-title">
+            AIRCRAFT CRASHED
+        </div>
+
+        <div class="go-sub"
+             id="final-dist-txt">
+
+            DISTANCE FLOWN: 0 M
+
+        </div>
+
+        <button
+            class="btn-restart-large"
+            id="restart-overlay-btn">
+
+            RESTART SIMULATION
+
+        </button>
+
+    </div>
+
+
+<script>
+
+    // =========================================================
+    // INTRO STATE
+    // =========================================================
+
+    let introActive = true;
+    let introStarted = false;
+    let introFinished = false;
+
+
+    const introScreen =
+        document.getElementById(
+            'aerovanta-intro'
+        );
+
+    const introContent =
+        document.getElementById(
+            'intro-content'
+        );
+
+    const introFlash =
+        document.getElementById(
+            'intro-flash'
+        );
+
+    const cinematicTitle =
+        document.getElementById(
+            'intro-cinematic-title'
+        );
+
+    const cinematicTitleText =
+        cinematicTitle.querySelector(
+            'span'
+        );
+
+
+    function hideGameUI() {
+
+        document.getElementById(
+            'top-bar'
+        ).style.display = 'none';
+
+        document.getElementById(
+            'throttle-panel'
+        ).style.display = 'none';
+
+        document.getElementById(
+            'bottom-bar'
+        ).style.display = 'none';
+
+    }
+
+
+    function showGameUI() {
+
+        document.getElementById(
+            'top-bar'
+        ).style.display = '';
+
+        document.getElementById(
+            'throttle-panel'
+        ).style.display = '';
+
+        document.getElementById(
+            'bottom-bar'
+        ).style.display = '';
+
+    }
+
+
+    hideGameUI();
+
+
+    // =========================================================
+    // RENDERER
+    // =========================================================
+
+    const container =
+        document.getElementById(
+            'canvas-container'
+        );
+
+
+    const scene =
+        new THREE.Scene();
+
+
+    const FOG_COLOR =
+        0xb4d3ed;
+
+
+    scene.fog =
+        new THREE.FogExp2(
+            FOG_COLOR,
+            0.00011
+        );
+
+
+    const camera =
+        new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth /
+            window.innerHeight,
+            0.1,
+            20000
+        );
+
+
+    let cameraMode = 'TPP';
+
+
+    const renderer =
+        new THREE.WebGLRenderer({
+
+            antialias: true,
+
+            powerPreference:
+                "high-performance"
+
+        });
+
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+const maxPixelRatio =
+    window.innerWidth <= 700
+        ? 1.25
+        : 1.75;
+
+renderer.setPixelRatio(
+    Math.min(
+        window.devicePixelRatio,
+        maxPixelRatio
+    )
+);
+
+    // Better monitor/phone color reproduction in Three.js r128.
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    renderer.shadowMap.enabled = true;
+
+    renderer.shadowMap.type =
+        THREE.PCFSoftShadowMap;
+
+
+    renderer.toneMapping =
+        THREE.ACESFilmicToneMapping;
+
+
+    renderer.toneMappingExposure =
+        1.12;
+
+
+    container.appendChild(
+        renderer.domElement
+    );
+
+
+    // =========================================================
+    // LIGHTING
+    // =========================================================
+
+    const hemiLight =
+        new THREE.HemisphereLight(
+            0xd9edff,
+            0x465044,
+            1.45
+        );
+
+    scene.add(
+        hemiLight
+    );
+
+
+    const sunLight =
+        new THREE.DirectionalLight(
+            0xfff7ed,
+            2.8
+        );
+
+
+    sunLight.position.set(
+        1200,
+        1800,
+        800
+    );
+
+
+    sunLight.castShadow = true;
+
+
+    sunLight.shadow.mapSize.width =
+        2048;
+
+    sunLight.shadow.mapSize.height =
+        2048;
+
+
+    sunLight.shadow.camera.near =
+        10;
+
+    sunLight.shadow.camera.far =
+        4000;
+
+
+    const shadowCamDist =
+        600;
+
+
+    sunLight.shadow.camera.left =
+        -shadowCamDist;
+
+    sunLight.shadow.camera.right =
+        shadowCamDist;
+
+    sunLight.shadow.camera.top =
+        shadowCamDist;
+
+    sunLight.shadow.camera.bottom =
+        -shadowCamDist;
+
+
+    scene.add(
+        sunLight
+    );
+
+
+    const fillLight =
+        new THREE.DirectionalLight(
+            0x9ec9e8,
+            0.55
+        );
+
+
+    fillLight.position.set(
+        -1000,
+        500,
+        -1000
+    );
+
+
+    scene.add(
+        fillLight
+    );
+
+
+    // =========================================================
+    // BUILDING TEXTURE
+    // =========================================================
+
+    function createBuildingFacadeTexture() {
+
+        const canvas =
+            document.createElement(
+                'canvas'
+            );
+
+
+        canvas.width = 1024;
+        canvas.height = 1024;
+
+
+        const ctx =
+            canvas.getContext('2d');
+
+
+        ctx.fillStyle =
+            '#2a3447';
+
+
+        ctx.fillRect(
+            0,
+            0,
+            1024,
+            1024
+        );
+
+
+        ctx.strokeStyle =
+            '#1e293b';
+
+        ctx.lineWidth = 4;
+
+
+        for (
+            let x = 0;
+            x < 1024;
+            x += 64
+        ) {
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                x,
+                0
+            );
+
+            ctx.lineTo(
+                x,
+                1024
+            );
+
+            ctx.stroke();
+
+        }
+
+
+        for (
+            let y = 16;
+            y < 1024;
+            y += 32
+        ) {
+
+            for (
+                let x = 8;
+                x < 1024;
+                x += 64
+            ) {
+
+                const rand =
+                    Math.random();
+
+
+                if (rand > 0.45) {
+
+                    ctx.fillStyle =
+                        '#0f172a';
+
+                } else if (rand > 0.12) {
+
+                    ctx.fillStyle =
+                        '#0284c7';
+
+                } else {
+
+                    ctx.fillStyle =
+                        '#fef08a';
+
+                }
+
+
+                ctx.fillRect(
+                    x,
+                    y,
+                    48,
+                    20
+                );
+
+
+                ctx.strokeStyle =
+                    '#475569';
+
+                ctx.lineWidth = 2;
+
+
+                ctx.strokeRect(
+                    x,
+                    y,
+                    48,
+                    20
+                );
+
+            }
+
+        }
+
+
+        const texture =
+            new THREE.CanvasTexture(
+                canvas
+            );
+
+
+        texture.wrapS =
+            THREE.RepeatWrapping;
+
+        texture.wrapT =
+            THREE.RepeatWrapping;
+
+
+        return texture;
+
+    }
+
+
+    // =========================================================
+    // ROAD TEXTURE
+    // =========================================================
+
+    function createRoadTexture() {
+
+        const canvas =
+            document.createElement(
+                'canvas'
+            );
+
+
+        canvas.width = 512;
+        canvas.height = 512;
+
+
+        const ctx =
+            canvas.getContext('2d');
+
+
+        ctx.fillStyle =
+            '#1e293b';
+
+
+        ctx.fillRect(
+            0,
+            0,
+            512,
+            512
+        );
+
+
+        ctx.fillStyle =
+            '#64748b';
+
+
+        ctx.fillRect(
+            0,
+            0,
+            32,
+            512
+        );
+
+
+        ctx.fillRect(
+            480,
+            0,
+            32,
+            512
+        );
+
+
+        ctx.fillStyle =
+            '#f59e0b';
+
+
+        ctx.fillRect(
+            250,
+            0,
+            4,
+            512
+        );
+
+
+        ctx.fillRect(
+            258,
+            0,
+            4,
+            512
+        );
+
+
+        ctx.fillStyle =
+            '#ffffff';
+
+
+        for (
+            let y = 0;
+            y < 512;
+            y += 64
+        ) {
+
+            ctx.fillRect(
+                138,
+                y,
+                6,
+                32
+            );
+
+
+            ctx.fillRect(
+                368,
+                y,
+                6,
+                32
+            );
+
+        }
+
+
+        const texture =
+            new THREE.CanvasTexture(
+                canvas
+            );
+
+
+        texture.wrapS =
+            THREE.RepeatWrapping;
+
+        texture.wrapT =
+            THREE.RepeatWrapping;
+
+
+        return texture;
+
+    }
+
+
+    const bldgTexture =
+        createBuildingFacadeTexture();
+
+
+    const roadTexture =
+        createRoadTexture();
+
+
+    // =========================================================
+    // SKY
+    // =========================================================
+
+    function createAtmosphericSky() {
+
+        const canvas =
+            document.createElement(
+                'canvas'
+            );
+
+
+        canvas.width = 2048;
+        canvas.height = 1024;
+
+
+        const ctx =
+            canvas.getContext('2d');
+
+
+        const grad =
+            ctx.createLinearGradient(
+                0,
+                0,
+                0,
+                1024
+            );
+
+
+        grad.addColorStop(
+            0.0,
+            '#0d1b2a'
+        );
+
+
+        grad.addColorStop(
+            0.4,
+            '#1b4965'
+        );
+
+
+        grad.addColorStop(
+            0.7,
+            '#62b6cb'
+        );
+
+
+        grad.addColorStop(
+            0.88,
+            '#bee9e8'
+        );
+
+
+        grad.addColorStop(
+            1.0,
+            '#cae9ff'
+        );
+
+
+        ctx.fillStyle =
+            grad;
+
+
+        ctx.fillRect(
+            0,
+            0,
+            2048,
+            1024
+        );
+
+
+        return new THREE.CanvasTexture(
+            canvas
+        );
+
+    }
+
+
+    const skyDomeGeo =
+        new THREE.SphereGeometry(
+            12000,
+            32,
+            16
+        );
+
+
+    const skyDomeMat =
+        new THREE.MeshBasicMaterial({
+
+            map:
+                createAtmosphericSky(),
+
+            side:
+                THREE.BackSide
+
+        });
+
+
+    const skyDome =
+        new THREE.Mesh(
+            skyDomeGeo,
+            skyDomeMat
+        );
+
+
+    scene.add(
+        skyDome
+    );
+
+    // Soft horizon haze: visually separates the ground from the sky.
+    const horizonGlow = new THREE.Mesh(
+        new THREE.SphereGeometry(9000, 32, 16),
+        new THREE.MeshBasicMaterial({
+            color: 0xc7e5ef,
+            transparent: true,
+            opacity: 0.035,
+            side: THREE.BackSide,
+            depthWrite: false
+        })
+    );
+    scene.add(horizonGlow);
+
+
+    // =========================================================
+    // CLOUDS
+    // =========================================================
+
+    function createCloudPuffTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        const grad = ctx.createRadialGradient(128, 128, 5, 128, 128, 128);
+        grad.addColorStop(0.00, 'rgba(255,255,255,0.92)');
+        grad.addColorStop(0.38, 'rgba(250,253,255,0.70)');
+        grad.addColorStop(0.72, 'rgba(232,241,248,0.30)');
+        grad.addColorStop(1.00, 'rgba(255,255,255,0)');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 256, 256);
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    const cloudTex = createCloudPuffTexture();
+    const cloudsGroup = new THREE.Group();
+
+    // Fewer, larger clusters look more natural than 180 identical sprites.
+    for (let i = 0; i < 48; i++) {
+        const cluster = new THREE.Group();
+
+        const clusterX = (Math.random() - 0.5) * 14000;
+        const clusterY = 520 + Math.random() * 620;
+        const clusterZ = (Math.random() - 0.5) * 14000;
+
+        const puffCount = 4 + Math.floor(Math.random() * 5);
+
+        for (let p = 0; p < puffCount; p++) {
+            const mat = new THREE.SpriteMaterial({
+                map: cloudTex,
+                transparent: true,
+                opacity: 0.30 + Math.random() * 0.30,
+                depthWrite: false
+            });
+
+            const puff = new THREE.Sprite(mat);
+            puff.position.set(
+                (Math.random() - 0.5) * 320,
+                (Math.random() - 0.5) * 95,
+                (Math.random() - 0.5) * 180
+            );
+
+            const s = 260 + Math.random() * 430;
+            puff.scale.set(s, s * (0.42 + Math.random() * 0.18), 1);
+
+            cluster.add(puff);
+        }
+
+        cluster.position.set(clusterX, clusterY, clusterZ);
+        cluster.userData.drift = 0.012 + Math.random() * 0.018;
+        cloudsGroup.add(cluster);
+    }
+
+    scene.add(cloudsGroup);
+
+    // A restrained sun disc gives the horizon a much more photographic feel.
+    const sunCanvas = document.createElement('canvas');
+    sunCanvas.width = 256;
+    sunCanvas.height = 256;
+    const sunCtx = sunCanvas.getContext('2d');
+    const sunGrad = sunCtx.createRadialGradient(128,128,8,128,128,128);
+    sunGrad.addColorStop(0, 'rgba(255,252,226,1)');
+    sunGrad.addColorStop(0.28, 'rgba(255,244,205,0.82)');
+    sunGrad.addColorStop(0.58, 'rgba(255,235,180,0.24)');
+    sunGrad.addColorStop(1, 'rgba(255,235,180,0)');
+    sunCtx.fillStyle = sunGrad;
+    sunCtx.fillRect(0,0,256,256);
+
+    const sunSprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+            map: new THREE.CanvasTexture(sunCanvas),
+            transparent: true,
+            depthWrite: false
+        })
+    );
+    sunSprite.position.set(1200, 1800, 800);
+    sunSprite.scale.set(850, 850, 1);
+    scene.add(sunSprite);
+
+    // Distant low-poly mountains add depth to the horizon without heavy assets.
+    const horizonGroup = new THREE.Group();
+    const mountainMat = new THREE.MeshStandardMaterial({
+        color: 0x71808a,
+        roughness: 1,
+        flatShading: true
+    });
+
+    for (let i = 0; i < 28; i++) {
+        const angle = (i / 28) * Math.PI * 2;
+        const radius = 6200 + Math.random() * 1400;
+        const width = 650 + Math.random() * 650;
+        const height = 180 + Math.random() * 420;
+
+        const mountain = new THREE.Mesh(
+            new THREE.ConeGeometry(width, height, 5 + Math.floor(Math.random() * 3)),
+            mountainMat
+        );
+
+        mountain.position.set(
+            Math.cos(angle) * radius,
+            height * 0.5 - 30,
+            Math.sin(angle) * radius
+        );
+        mountain.rotation.y = Math.random() * Math.PI;
+        mountain.scale.z = 0.65 + Math.random() * 0.55;
+        horizonGroup.add(mountain);
+    }
+
+    scene.add(horizonGroup);
+
+    // =========================================================
+    // AIRCRAFT
+    // =========================================================
+
+    function createDeltaFighter() {
+
+        const jet =
+            new THREE.Group();
+
+
+        const bodyMat =
+            new THREE.MeshStandardMaterial({
+
+                color:
+                    0x334155,
+
+                metalness:
+                    0.85,
+
+                roughness:
+                    0.2
+
+            });
+
+
+        const wingMat =
+            new THREE.MeshStandardMaterial({
+
+                color:
+                    0x475569,
+
+                metalness:
+                    0.8,
+
+                roughness:
+                    0.25
+
+            });
+
+
+        const darkMat =
+            new THREE.MeshStandardMaterial({
+
+                color:
+                    0x0f172a,
+
+                metalness:
+                    0.9,
+
+                roughness:
+                    0.1
+
+            });
+
+
+        const glassMat =
+            new THREE.MeshStandardMaterial({
+
+                color:
+                    0x38bdf8,
+
+                metalness:
+                    0.95,
+
+                roughness:
+                    0.05,
+
+                transparent:
+                    true,
+
+                opacity:
+                    0.75
+
+            });
+
+
+        const engineFlameMat =
+            new THREE.MeshBasicMaterial({
+
+                color:
+                    0x38bdf8
+
+            });
+
+
+        const noseGeo =
+            new THREE.ConeGeometry(
+                0.65,
+                5.0,
+                16
+            );
+
+
+        const nose =
+            new THREE.Mesh(
+                noseGeo,
+                bodyMat
+            );
+
+
+        nose.rotation.x =
+            -Math.PI / 2;
+
+
+        nose.position.z =
+            -3.5;
+
+
+        jet.add(
+            nose
+        );
+
+
+        const bodyGeo =
+            new THREE.CylinderGeometry(
+                0.7,
+                0.85,
+                7.5,
+                16
+            );
+
+
+        const body =
+            new THREE.Mesh(
+                bodyGeo,
+                bodyMat
+            );
+
+
+        body.rotation.x =
+            -Math.PI / 2;
+
+
+        jet.add(
+            body
+        );
+
+
+        const cockpitGeo =
+            new THREE.SphereGeometry(
+                0.5,
+                16,
+                16
+            );
+
+
+        cockpitGeo.scale(
+            0.85,
+            0.75,
+            2.8
+        );
+
+
+        const cockpit =
+            new THREE.Mesh(
+                cockpitGeo,
+                glassMat
+            );
+
+
+        cockpit.position.set(
+            0,
+            0.5,
+            -1.2
+        );
+
+
+        jet.add(
+            cockpit
+        );
+
+
+        const deltaWingShape =
+            new THREE.Shape();
+
+
+        deltaWingShape.moveTo(
+            0,
+            1.2
+        );
+
+
+        deltaWingShape.lineTo(
+            5.5,
+            -3.2
+        );
+
+
+        deltaWingShape.lineTo(
+            5.5,
+            -4.2
+        );
+
+
+        deltaWingShape.lineTo(
+            0,
+            -3.0
+        );
+
+
+        deltaWingShape.lineTo(
+            -5.5,
+            -4.2
+        );
+
+
+        deltaWingShape.lineTo(
+            -5.5,
+            -3.2
+        );
+
+
+        deltaWingShape.closePath();
+
+
+        const wingGeo =
+            new THREE.ExtrudeGeometry(
+                deltaWingShape,
+                {
+
+                    depth:
+                        0.12,
+
+                    bevelEnabled:
+                        true,
+
+                    bevelSegments:
+                        2,
+
+                    bevelSize:
+                        0.04,
+
+                    bevelThickness:
+                        0.04
+
+                }
+            );
+
+
+        const wings =
+            new THREE.Mesh(
+                wingGeo,
+                wingMat
+            );
+
+
+        wings.rotation.x =
+            Math.PI / 2;
+
+
+        wings.position.set(
+            0,
+            -0.1,
+            1.0
+        );
+
+
+        jet.add(
+            wings
+        );
+
+
+        const finShape =
+            new THREE.Shape();
+
+
+        finShape.moveTo(
+            0,
+            0
+        );
+
+
+        finShape.lineTo(
+            0,
+            2.8
+        );
+
+
+        finShape.lineTo(
+            -1.2,
+            2.4
+        );
+
+
+        finShape.lineTo(
+            -2.2,
+            0
+        );
+
+
+        finShape.closePath();
+
+
+        const finGeo =
+            new THREE.ExtrudeGeometry(
+                finShape,
+                {
+
+                    depth:
+                        0.1,
+
+                    bevelEnabled:
+                        false
+
+                }
+            );
+
+
+        const fin =
+            new THREE.Mesh(
+                finGeo,
+                bodyMat
+            );
+
+
+        fin.position.set(
+            0,
+            0.6,
+            3.2
+        );
+
+
+        fin.rotation.y =
+            Math.PI / 2;
+
+
+        jet.add(
+            fin
+        );
+
+
+        const engGeo =
+            new THREE.CylinderGeometry(
+                0.42,
+                0.42,
+                1.2,
+                16
+            );
+
+
+        const engL =
+            new THREE.Mesh(
+                engGeo,
+                darkMat
+            );
+
+
+        engL.rotation.x =
+            Math.PI / 2;
+
+
+        engL.position.set(
+            -0.48,
+            -0.1,
+            3.8
+        );
+
+
+        jet.add(
+            engL
+        );
+
+
+        const engR =
+            engL.clone();
+
+
+        engR.position.x =
+            0.48;
+
+
+        jet.add(
+            engR
+        );
+
+
+        const flameGeo =
+            new THREE.ConeGeometry(
+                0.35,
+                2.2,
+                12
+            );
+
+
+        const flameL =
+            new THREE.Mesh(
+                flameGeo,
+                engineFlameMat
+            );
+
+
+        flameL.rotation.x =
+            -Math.PI / 2;
+
+
+        flameL.position.set(
+            -0.48,
+            -0.1,
+            5.0
+        );
+
+
+        jet.add(
+            flameL
+        );
+
+
+        const flameR =
+            flameL.clone();
+
+
+        flameR.position.x =
+            0.48;
+
+
+        jet.add(
+            flameR
+        );
+
+
+        jet.scale.set(
+            1.4,
+            1.4,
+            1.4
+        );
+
+
+        return jet;
+
+    }
+
+
+    const jetGroup =
+        createDeltaFighter();
+
+    // A second detailing pass keeps the original aircraft system intact
+    // while giving the airframe a more distinctive game-prototype silhouette.
+    function detailAircraft(jet) {
+        const trim = new THREE.MeshStandardMaterial({color:0x94a3b8, metalness:.9, roughness:.18});
+        const dark = new THREE.MeshStandardMaterial({color:0x111827, metalness:.92, roughness:.12});
+        const emissive = new THREE.MeshBasicMaterial({color:0x7dd3fc});
+        const cockpitFrame = new THREE.Mesh(
+            new THREE.TorusGeometry(.52,.035,6,24),
+            trim
+        );
+        cockpitFrame.rotation.x = Math.PI/2;
+        cockpitFrame.position.set(0,.5,-1.2);
+        jet.add(cockpitFrame);
+
+        [-1,1].forEach(side=>{
+            const nacelle = new THREE.Mesh(new THREE.CylinderGeometry(.5,.56,1.45,16), dark);
+            nacelle.rotation.x=Math.PI/2;
+            nacelle.position.set(side*.82,-.05,3.15);
+            jet.add(nacelle);
+
+            const nozzle = new THREE.Mesh(new THREE.RingGeometry(.22,.37,16), emissive);
+            nozzle.rotation.x=Math.PI/2;
+            nozzle.position.set(side*.82,-.05,3.9);
+            jet.add(nozzle);
+
+            const tip = new THREE.Mesh(new THREE.BoxGeometry(.08,.12,.7), emissive);
+            tip.position.set(side*4.0,.03,.35);
+            jet.add(tip);
+        });
+
+        // Small ventral stabilizers make the silhouette readable in TPP.
+        [-1,1].forEach(side=>{
+            const fin = new THREE.Mesh(new THREE.BoxGeometry(1.4,.08,.55), trim);
+            fin.rotation.z = side*.22;
+            fin.position.set(side*2.25,-.18,1.0);
+            jet.add(fin);
+        });
+
+        const navL = new THREE.PointLight(0x7dd3fc, .7, 12);
+        navL.position.set(-4,0,.1);
+        jet.add(navL);
+        const navR = new THREE.PointLight(0xf8fafc, .55, 12);
+        navR.position.set(4,0,.1);
+        jet.add(navR);
+    }
+    detailAircraft(jetGroup);
+
+
+    jetGroup.position.set(
+        0,
+        85,
+        0
+    );
+
+
+    scene.add(
+        jetGroup
+    );
+
+
+    // =========================================================
+    // CITY
+    // =========================================================
+
+    const activeChunks =
+        new Map();
+
+
+    const CHUNK_SIZE =
+        400;
+
+
+    const RENDER_DISTANCE =
+        3;
+
+
+    const trunkMat =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                0x3d2314,
+
+            roughness:
+                0.9
+
+        });
+
+
+    const leafMat =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                0x166534,
+
+            roughness:
+                0.6
+
+        });
+
+
+    function createTree() {
+        const tree = new THREE.Group();
+
+        const scale = 0.72 + Math.random() * 0.78;
+
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.32, 0.58, 5.5, 7),
+            trunkMat
+        );
+        trunk.position.y = 2.75;
+        trunk.castShadow = true;
+        tree.add(trunk);
+
+        const leafMats = [
+            new THREE.MeshStandardMaterial({color: 0x245c36, roughness: 0.85}),
+            new THREE.MeshStandardMaterial({color: 0x2f6f3e, roughness: 0.85}),
+            new THREE.MeshStandardMaterial({color: 0x3b7d45, roughness: 0.9})
+        ];
+
+        const canopy = new THREE.Group();
+        const lobes = 2 + Math.floor(Math.random() * 3);
+
+        for (let i = 0; i < lobes; i++) {
+            const lobe = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(2.5 + Math.random() * 1.6, 1),
+                leafMats[Math.floor(Math.random() * leafMats.length)]
+            );
+            lobe.position.set(
+                (Math.random() - 0.5) * 3.4,
+                5.3 + Math.random() * 2.8,
+                (Math.random() - 0.5) * 3.4
+            );
+            lobe.scale.y = 0.82 + Math.random() * 0.5;
+            lobe.castShadow = true;
+            canopy.add(lobe);
+        }
+
+        tree.add(canopy);
+        tree.scale.setScalar(scale);
+        tree.rotation.y = Math.random() * Math.PI * 2;
+
+        return tree;
+    }
+
+
+    function generateBuilding(
+        x,
+        z,
+        totalHeight
+    ) {
+
+        const bGroup =
+            new THREE.Group();
+
+        const buildingStyle = Math.floor(Math.random() * 4);
+        const buildingTint = [
+            0x7b8794,
+            0x667786,
+            0x8b9298,
+            0x596b78
+        ][buildingStyle];
+
+
+        const baseWidth =
+            45 +
+            Math.random() *
+            25;
+
+
+        const baseDepth =
+            45 +
+            Math.random() *
+            25;
+
+
+        const pHeight =
+            totalHeight *
+            0.3;
+
+
+        const pGeo =
+            new THREE.BoxGeometry(
+                baseWidth,
+                pHeight,
+                baseDepth
+            );
+
+
+        const pTex =
+            bldgTexture.clone();
+
+
+        pTex.repeat.set(
+
+            Math.floor(
+                baseWidth / 12
+            ),
+
+            Math.floor(
+                pHeight / 12
+            )
+
+        );
+
+
+        const pMat =
+            new THREE.MeshStandardMaterial({
+
+                map:
+                    pTex,
+
+                color:
+                    buildingTint,
+
+                metalness:
+                    0.25 + buildingStyle * 0.06,
+
+                roughness:
+                    0.48 - buildingStyle * 0.04
+
+            });
+
+
+        const podium =
+            new THREE.Mesh(
+                pGeo,
+                pMat
+            );
+
+
+        podium.position.y =
+            pHeight / 2;
+
+
+        podium.castShadow =
+            true;
+
+
+        podium.receiveShadow =
+            true;
+
+
+        bGroup.add(
+            podium
+        );
+
+
+        const tHeight =
+            totalHeight *
+            0.7;
+
+
+        const tGeo =
+            new THREE.BoxGeometry(
+                baseWidth * 0.8,
+                tHeight,
+                baseDepth * 0.8
+            );
+
+
+        const tTex =
+            bldgTexture.clone();
+
+
+        tTex.repeat.set(
+
+            Math.floor(
+                (baseWidth * 0.8) / 12
+            ),
+
+            Math.floor(
+                tHeight / 12
+            )
+
+        );
+
+
+        const tMat =
+            new THREE.MeshStandardMaterial({
+
+                map:
+                    tTex,
+
+                color:
+                    buildingTint,
+
+                metalness:
+                    0.28 + buildingStyle * 0.05,
+
+                roughness:
+                    0.42 - buildingStyle * 0.035
+
+            });
+
+
+        const tower =
+            new THREE.Mesh(
+                tGeo,
+                tMat
+            );
+
+
+        tower.position.y =
+            pHeight +
+            tHeight / 2;
+
+
+        tower.castShadow =
+            true;
+
+
+        tower.receiveShadow =
+            true;
+
+
+        bGroup.add(
+            tower
+        );
+
+
+        const hvac =
+            new THREE.Mesh(
+
+                new THREE.BoxGeometry(
+                    baseWidth * 0.3,
+                    4,
+                    baseDepth * 0.3
+                ),
+
+                new THREE.MeshStandardMaterial({
+
+                    color:
+                        0x475569,
+
+                    metalness:
+                        0.9,
+
+                    roughness:
+                        0.3
+
+                })
+
+            );
+
+
+        hvac.position.y =
+            totalHeight + 2;
+
+
+        bGroup.add(
+            hvac
+        );
+
+
+        if (
+            totalHeight > 120
+        ) {
+
+            const spire =
+                new THREE.Mesh(
+
+                    new THREE.CylinderGeometry(
+                        0.2,
+                        1.0,
+                        30,
+                        8
+                    ),
+
+                    new THREE.MeshStandardMaterial({
+
+                        color:
+                            0x94a3b8,
+
+                        metalness:
+                            0.95
+
+                    })
+
+                );
+
+
+            spire.position.y =
+                totalHeight + 15;
+
+
+            bGroup.add(
+                spire
+            );
+
+        }
+
+
+        // Small rooftop details break the repeated procedural silhouette.
+        if (Math.random() > 0.25) {
+            const tank = new THREE.Mesh(
+                new THREE.CylinderGeometry(2.5 + Math.random()*2, 2.5 + Math.random()*2, 5 + Math.random()*4, 10),
+                new THREE.MeshStandardMaterial({
+                    color: 0x9aa5ad,
+                    metalness: 0.55,
+                    roughness: 0.38
+                })
+            );
+            tank.position.set(
+                (Math.random() - 0.5) * baseWidth * 0.45,
+                totalHeight + 3,
+                (Math.random() - 0.5) * baseDepth * 0.45
+            );
+            tank.castShadow = true;
+            bGroup.add(tank);
+        }
+
+        if (Math.random() > 0.55) {
+            const mast = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.18, 10 + Math.random()*10, 6),
+                new THREE.MeshStandardMaterial({
+                    color: 0xb7c0c7,
+                    metalness: 0.8,
+                    roughness: 0.25
+                })
+            );
+            mast.position.set(
+                (Math.random() - 0.5) * baseWidth * 0.3,
+                totalHeight + 8,
+                (Math.random() - 0.5) * baseDepth * 0.3
+            );
+            mast.castShadow = true;
+            bGroup.add(mast);
+        }
+
+
+        bGroup.position.set(
+            x,
+            0,
+            z
+        );
+
+
+        return bGroup;
+
+    }
+
+
+    function generateChunk(
+        cx,
+        cz
+    ) {
+
+        const chunkGroup =
+            new THREE.Group();
+
+
+        const startX =
+            cx *
+            CHUNK_SIZE;
+
+
+        const startZ =
+            cz *
+            CHUNK_SIZE;
+
+
+        const groundGeo =
+            new THREE.PlaneGeometry(
+                CHUNK_SIZE,
+                CHUNK_SIZE
+            );
+
+
+        const groundColors = [
+            0x2f7138,
+            0x3b7f40,
+            0x477f42,
+            0x356d3a
+        ];
+
+        const groundMat =
+            new THREE.MeshStandardMaterial({
+
+                color:
+                    groundColors[(Math.abs(cx * 7 + cz * 11)) % groundColors.length],
+
+                roughness:
+                    0.96
+
+            });
+
+
+        const ground =
+            new THREE.Mesh(
+                groundGeo,
+                groundMat
+            );
+
+
+        ground.rotation.x =
+            -Math.PI / 2;
+
+
+        ground.position.set(
+
+            startX +
+                CHUNK_SIZE / 2,
+
+            0,
+
+            startZ +
+                CHUNK_SIZE / 2
+
+        );
+
+
+        ground.receiveShadow =
+            true;
+
+
+        chunkGroup.add(
+            ground
+        );
+
+        // Large low-contrast land patches break the single-green-plane look.
+        for (let p = 0; p < 5; p++) {
+            const patchMat = new THREE.MeshStandardMaterial({
+                color: [0x5b8748, 0x6d8e4c, 0x47743e][(p + Math.abs(cx) + Math.abs(cz)) % 3],
+                roughness: 1
+            });
+
+            const patch = new THREE.Mesh(
+                new THREE.CircleGeometry(35 + Math.random()*70, 9),
+                patchMat
+            );
+            patch.rotation.x = -Math.PI / 2;
+            patch.rotation.z = Math.random() * Math.PI;
+            patch.position.set(
+                startX + Math.random()*CHUNK_SIZE,
+                0.012,
+                startZ + Math.random()*CHUNK_SIZE
+            );
+            patch.scale.y = 0.55 + Math.random()*0.6;
+            chunkGroup.add(patch);
+        }
+
+
+        const tileRoadTex =
+            roadTexture.clone();
+
+
+        tileRoadTex.repeat.set(
+            1,
+            8
+        );
+
+
+        const roadV =
+            new THREE.Mesh(
+
+                new THREE.PlaneGeometry(
+                    50,
+                    CHUNK_SIZE
+                ),
+
+                new THREE.MeshStandardMaterial({
+
+                    map:
+                        tileRoadTex,
+
+                    roughness:
+                        0.7
+
+                })
+
+            );
+
+
+        roadV.rotation.x =
+            -Math.PI / 2;
+
+
+        roadV.position.set(
+
+            startX +
+                CHUNK_SIZE / 2,
+
+            0.1,
+
+            startZ +
+                CHUNK_SIZE / 2
+
+        );
+
+
+        roadV.receiveShadow =
+            true;
+
+
+        chunkGroup.add(
+            roadV
+        );
+
+
+        const roadH =
+            new THREE.Mesh(
+
+                new THREE.PlaneGeometry(
+                    CHUNK_SIZE,
+                    50
+                ),
+
+                new THREE.MeshStandardMaterial({
+
+                    map:
+                        tileRoadTex,
+
+                    roughness:
+                        0.7
+
+                })
+
+            );
+
+
+        roadH.rotation.x =
+            -Math.PI / 2;
+
+
+        roadH.rotation.z =
+            Math.PI / 2;
+
+
+        roadH.position.set(
+
+            startX +
+                CHUNK_SIZE / 2,
+
+            0.1,
+
+            startZ +
+                CHUNK_SIZE / 2
+
+        );
+
+
+        roadH.receiveShadow =
+            true;
+
+
+        chunkGroup.add(
+            roadH
+        );
+
+
+        const obstacles = [];
+
+
+        for (
+            let z = startZ + 28;
+            z < startZ + CHUNK_SIZE;
+            z += 54
+        ) {
+
+            const tree1 = createTree();
+            tree1.position.set(
+                startX + CHUNK_SIZE / 2 - 34 + (Math.random()-0.5)*18,
+                0,
+                z + (Math.random()-0.5)*14
+            );
+            chunkGroup.add(tree1);
+
+            const tree2 = createTree();
+            tree2.position.set(
+                startX + CHUNK_SIZE / 2 + 34 + (Math.random()-0.5)*18,
+                0,
+                z + (Math.random()-0.5)*14
+            );
+            chunkGroup.add(tree2);
+
+            if (Math.random() > 0.62) {
+                const tree3 = createTree();
+                tree3.position.set(
+                    startX + CHUNK_SIZE / 2 + (Math.random()-0.5)*150,
+                    0,
+                    z + 20 + (Math.random()-0.5)*18
+                );
+                chunkGroup.add(tree3);
+            }
+        }
+
+
+        const buildingCoords = [
+
+            {
+                x:
+                    startX + 95,
+
+                z:
+                    startZ + 95
+            },
+
+            {
+                x:
+                    startX +
+                    CHUNK_SIZE -
+                    95,
+
+                z:
+                    startZ + 95
+            },
+
+            {
+                x:
+                    startX + 95,
+
+                z:
+                    startZ +
+                    CHUNK_SIZE -
+                    95
+            },
+
+            {
+                x:
+                    startX +
+                    CHUNK_SIZE -
+                    95,
+
+                z:
+                    startZ +
+                    CHUNK_SIZE -
+                    95
+            }
+
+        ];
+
+
+        buildingCoords.forEach(
+            pos => {
+
+                const height =
+                    60 +
+                    Math.random() *
+                    140;
+
+
+                const building =
+                    generateBuilding(
+
+                        pos.x,
+                        pos.z,
+                        height
+
+                    );
+
+
+                chunkGroup.add(
+                    building
+                );
+
+
+                obstacles.push({
+
+                    box:
+                        new THREE.Box3()
+                            .setFromObject(
+                                building
+                            )
+
+                });
+
+            }
+        );
+
+
+        scene.add(
+            chunkGroup
+        );
+
+
+        return {
+
+            group:
+                chunkGroup,
+
+            obstacles:
+                obstacles
+
+        };
+
+    }
+
+
+    function updateChunks() {
+
+        const pX =
+            jetGroup.position.x;
+
+
+        const pZ =
+            jetGroup.position.z;
+
+
+        const currChunkX =
+            Math.floor(
+                pX /
+                CHUNK_SIZE
+            );
+
+
+        const currChunkZ =
+            Math.floor(
+                pZ /
+                CHUNK_SIZE
+            );
+
+
+        const activeKeys =
+            new Set();
+
+
+        for (
+            let x = -RENDER_DISTANCE;
+            x <= RENDER_DISTANCE;
+            x++
+        ) {
+
+            for (
+                let z = -RENDER_DISTANCE;
+                z <= RENDER_DISTANCE;
+                z++
+            ) {
+
+                const cx =
+                    currChunkX + x;
+
+
+                const cz =
+                    currChunkZ + z;
+
+
+                const key =
+                    `${cx},${cz}`;
+
+
+                activeKeys.add(
+                    key
+                );
+
+
+                if (
+                    !activeChunks.has(
+                        key
+                    )
+                ) {
+
+                    activeChunks.set(
+
+                        key,
+
+                        generateChunk(
+                            cx,
+                            cz
+                        )
+
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        activeChunks.forEach(
+            (data, key) => {
+
+                if (
+                    !activeKeys.has(
+                        key
+                    )
+                ) {
+
+                    scene.remove(
+                        data.group
+                    );
+
+
+                    activeChunks.delete(
+                        key
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+
+    // =========================================================
+    // GAMEPLAY / NAVIGATION GATES
+    // =========================================================
+    let score = 0;
+    let missionIndex = 0;
+    let completedGates = 0;
+    const missionNames = [
+        ["TRACE THE SKYWAY","Pass through the next navigation gate"],
+        ["URBAN RUN","Thread the city corridor and keep your altitude"],
+        ["HORIZON CHASE","Chain the next gates at high speed"],
+        ["OPEN AIR","Push into the next sector and keep flying"]
+    ];
+    const gates = [];
+    const gateGroup = new THREE.Group();
+    scene.add(gateGroup);
+
+    // =========================================================
+    // AEROVANTA CHECKPOINT SYSTEM
+    // Large, highly visible flight checkpoints placed directly
+    // along the aircraft's current heading.
+    // =========================================================
+
+    function makeGate(position, rotationY=0, scale=1) {
+        const g = new THREE.Group();
+
+        // Main checkpoint ring — intentionally large and bright.
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.98,
+            side: THREE.DoubleSide
+        });
+
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(24 * scale, 0.9 * scale, 16, 64),
+            ringMat
+        );
+        g.add(ring);
+
+        // Inner guidance ring.
+        const innerMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.55,
+            side: THREE.DoubleSide
+        });
+
+        const inner = new THREE.Mesh(
+            new THREE.TorusGeometry(18 * scale, 0.22 * scale, 10, 48),
+            innerMat
+        );
+        g.add(inner);
+
+        // Transparent centre — makes the opening readable against the world.
+        const core = new THREE.Mesh(
+            new THREE.CircleGeometry(21 * scale, 48),
+            new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.10,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            })
+        );
+        g.add(core);
+
+        // Four direction markers.
+        const markerMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.95
+        });
+
+        const markerPositions = [
+            [0, 27, 0], [0, -27, 0], [27, 0, 0], [-27, 0, 0]
+        ];
+
+        markerPositions.forEach(([x, y, z]) => {
+            const marker = new THREE.Mesh(
+                new THREE.BoxGeometry(2.2 * scale, 6 * scale, 0.5 * scale),
+                markerMat
+            );
+            marker.position.set(x, y, z);
+            if (Math.abs(x) > 0) marker.rotation.z = Math.PI / 2;
+            g.add(marker);
+        });
+
+        // Floating checkpoint label.
+        const label = makeCheckpointLabel();
+        label.position.set(0, 34 * scale, 0);
+        label.scale.setScalar(0.9 * scale);
+        g.add(label);
+
+        // Small vertical beacon.
+        const beacon = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.55 * scale, 0.55 * scale, 8 * scale, 10),
+            new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                transparent: true,
+                opacity: 0.9
+            })
+        );
+        beacon.position.set(0, -34 * scale, 0);
+        g.add(beacon);
+
+        g.position.copy(position);
+
+        // The ring's normal is +Z. Rotate the whole checkpoint so its
+        // opening faces the incoming flight path instead of always being
+        // aligned with the world/starting heading.
+        const defaultNormal = new THREE.Vector3(0, 0, 1);
+        const facing = new THREE.Vector3(0, 0, 1)
+            .applyQuaternion(g.quaternion)
+            .normalize();
+        // rotationY is supplied as an optional visual yaw offset.
+        g.rotation.y = rotationY;
+
+        gateGroup.add(g);
+
+        return {
+            group: g,
+            radius: 25 * scale,
+            baseScale: scale,
+            passed: false,
+            pulse: Math.random() * Math.PI * 2
+        };
+    }
+
+    function makeCheckpointLabel() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 512;
+        canvas.height = 128;
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "rgba(5, 15, 25, 0.78)";
+        ctx.fillRect(20, 20, 472, 88);
+
+        ctx.strokeStyle = "rgba(56,189,248,0.95)";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(20, 20, 472, 88);
+
+        ctx.font = "bold 34px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("CHECKPOINT", 256, 64);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+
+        const sprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                map: texture,
+                transparent: true,
+                depthWrite: false
+            })
+        );
+
+        sprite.scale.set(34, 8.5, 1);
+        return sprite;
+    }
+
+  function seedGates(reset=false) {
+
+    if (reset) {
+        gates.forEach(g => gateGroup.remove(g.group));
+        gates.length = 0;
+
+        missionIndex = 0;
+        completedGates = 0;
+    }
+
+    // Remove the previous active checkpoint.
+    gates.forEach(g => gateGroup.remove(g.group));
+    gates.length = 0;
+
+    const base = jetGroup.position.clone();
+
+    const forward = new THREE.Vector3(0, 0, -1)
+        .applyQuaternion(jetGroup.quaternion)
+        .normalize();
+
+    const right = new THREE.Vector3(1, 0, 0)
+        .applyQuaternion(jetGroup.quaternion)
+        .normalize();
+
+    /*
+     * ROLLING CHECKPOINT SYSTEM
+     *
+     * Only ONE future checkpoint exists at a time.
+     *
+     * IMPORTANT:
+     * 1000 m is the MAXIMUM ALTITUDE.
+     * It is NOT a distance limit.
+     *
+     * Checkpoints may be much farther than 1000 m away.
+     */
+
+    const forwardDistance = 850;
+
+    // Alternate the course from side to side.
+    const side =
+        completedGates % 2 === 0
+            ? 260
+            : -260;
+
+    /*
+     * Gradual altitude changes.
+     *
+     * The course can move slightly up, stay level,
+     * or move slightly down.
+     *
+     * Hard ceiling: 1000 m.
+     */
+    const altitudeChange =
+        completedGates % 3 === 0
+            ? 35
+            : completedGates % 3 === 1
+                ? -20
+                : 0;
+
+    let targetAltitude =
+        jetGroup.position.y + altitudeChange;
+
+    /*
+     * Keep checkpoints above the main city skyline.
+     * Building heights are roughly 60–200 m.
+     */
+    targetAltitude =
+        Math.max(
+            230,
+            targetAltitude
+        );
+
+    /*
+     * HARD ALTITUDE CEILING.
+     */
+    targetAltitude =
+        Math.min(
+            1000,
+            targetAltitude
+        );
+
+    const position = base.clone()
+        .add(
+            forward.clone()
+                .multiplyScalar(forwardDistance)
+        )
+        .add(
+            right.clone()
+                .multiplyScalar(side)
+        );
+
+    position.y = targetAltitude;
+
+    /*
+     * Aim the checkpoint along the actual route
+     * from the aircraft toward the gate.
+     */
+    const routeDirection = position.clone()
+        .sub(base)
+        .normalize();
+
+    const gate = makeGate(
+        position,
+        0,
+        1.50
+    );
+
+    gate.group.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 0, 1),
+        routeDirection
+    );
+
+    gate.routeIndex = completedGates;
+    gate.baseScale = 1.50;
+
+    gates.push(gate);
+
+    updateMissionUI();
+}
+    function getNextGate() {
+        return gates.find(g => !g.passed) || null;
+    }
+
+    function updateCheckpointGuidance() {
+        const next = getNextGate();
+        const p = jetGroup.position;
+
+        const distanceEl = document.getElementById("checkpoint-distance");
+        const directionEl = document.getElementById("checkpoint-direction");
+
+        if (!next) {
+            if (distanceEl) distanceEl.textContent = "READY";
+            if (directionEl) directionEl.textContent = "NEXT ROUTE";
+            return;
+        }
+
+        const distance = p.distanceTo(next.group.position);
+        if (distanceEl) {
+            distanceEl.textContent =
+                distance >= 1000
+                    ? (distance / 1000).toFixed(1) + " KM"
+                    : Math.round(distance) + " M";
+        }
+
+        // Direction relative to aircraft heading.
+        const forward = new THREE.Vector3(0, 0, -1)
+            .applyQuaternion(jetGroup.quaternion)
+            .normalize();
+
+        const toGate = next.group.position.clone()
+            .sub(p)
+            .normalize();
+
+        const dot = THREE.MathUtils.clamp(forward.dot(toGate), -1, 1);
+        const angle = Math.atan2(
+            forward.x * toGate.z - forward.z * toGate.x,
+            dot
+        );
+
+        if (directionEl) {
+            if (Math.abs(angle) < 0.20) directionEl.textContent = "AHEAD";
+            else if (angle > 0) directionEl.textContent = "TURN RIGHT";
+            else directionEl.textContent = "TURN LEFT";
+        }
+    }
+
+    function updateMissionUI(){
+        const card=document.getElementById('mission-card');
+        card.classList.add('visible');
+        const m=missionNames[missionIndex%missionNames.length];
+        document.getElementById('mission-title').textContent=m[0];
+        document.getElementById('mission-detail').textContent=m[1];
+        document.querySelector('#mission-progress i').style.width =
+            `${Math.min(100,(completedGates%3)/3*100)}%`;
+    }
+
+    function updateGameplay(){
+        if (isGameOver || isPaused || introActive) return;
+
+        const p = jetGroup.position;
+        const next = getNextGate();
+
+        updateCheckpointGuidance();
+
+        if (!next) return;
+
+        // Animate the active checkpoint so it is unmistakable.
+        next.pulse += 0.055;
+        const pulse = 1 + Math.sin(next.pulse) * 0.06;
+        next.group.scale.setScalar(next.baseScale * pulse);
+
+        // Rotate only decorative elements around the checkpoint.
+        next.group.rotation.z += 0.0035;
+
+        const distance = p.distanceTo(next.group.position);
+
+        // Generous capture radius so the player does not have to hit
+        // the exact mathematical centre of the ring.
+        if (distance < next.radius * 0.82) {
+            next.passed = true;
+
+            score += Math.round(1000 + currentSpeed * 0.6);
+            completedGates++;
+            missionIndex++;
+
+            // Success flash.
+            const flash = document.getElementById("checkpoint-flash");
+            if (flash) {
+                flash.classList.remove("active");
+                void flash.offsetWidth;
+                flash.classList.add("active");
+            }
+
+            // Remove the completed checkpoint.
+            if (next.group.parent) {
+                gateGroup.remove(next.group);
+            }
+
+            if (completedGates % 3 === 0) {
+                document.getElementById("complete-score").textContent =
+                    String(Math.floor(score)).padStart(6, "0");
+
+                document.getElementById("mission-complete").style.display = "grid";
+                isPaused = true;
+            } else {
+                score += 250;
+                // Generate another non-straight route from the aircraft's
+                // current position and heading.
+                seedGates();
+            }
+
+            updateMissionUI();
+        }
+    }
+
+    function refreshScoreUI(){
+        document.getElementById('score-val').textContent=String(Math.floor(score)).padStart(6,'0');
+        document.getElementById('dist-val').textContent=(totalDistance/1000).toFixed(1);
+        document.getElementById('status-val').textContent=espConnected?'MPU6050':'LOCAL';
+        document.getElementById('serial-status-dot').style.background=espConnected?'#bef264':'#64748b';
+    }
+
+    function setCrashState(){
+        // Lightweight impact burst; no external assets required.
+        const burst=new THREE.Group();
+        for(let i=0;i<28;i++){
+            const m=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.45),
+                new THREE.MeshBasicMaterial({color:i%2?0xf8fafc:0x7dd3fc,transparent:true,opacity:.9}));
+            m.position.copy(jetGroup.position);
+            m.userData.v=new THREE.Vector3((Math.random()-.5)*2,(Math.random()-.2)*1.6,(Math.random()-.5)*2);
+            burst.add(m);
+        }
+        scene.add(burst);
+        const started=performance.now();
+        function burstAnim(now){
+            const t=(now-started)/650;
+            burst.children.forEach(m=>{
+                m.position.addScaledVector(m.userData.v,.8);
+                m.userData.v.y-=.035;
+                m.rotation.x+=.12; m.rotation.y+=.09;
+                m.material.opacity=Math.max(0,1-t);
+            });
+            if(t<1) requestAnimationFrame(burstAnim);
+            else scene.remove(burst);
+        }
+        requestAnimationFrame(burstAnim);
+        cameraShake=1;
+    }
+
+
+    // =========================================================
+    // PHYSICS
+
+    let currentSpeed = 450;
+    let cameraShake = 0;
+
+    let isPaused = false;
+
+    let isGameOver = false;
+
+    let yawAngle = 0;
+
+    let pitchAngle = 0;
+
+    let rollAngle = 0;
+
+    let targetRoll = 0;
+
+    let targetPitch = 0;
+
+    let totalDistance = 0;
+
+
+    const throttleSlider =
+        document.getElementById(
+            'throttle-slider'
+        );
+
+
+    const throttleReadout =
+        document.getElementById(
+            'throttle-readout'
+        );
+
+
+    throttleSlider.addEventListener(
+        'input',
+        e => {
+
+            currentSpeed =
+                parseFloat(
+                    e.target.value
+                );
+
+
+            throttleReadout.innerText =
+                `${Math.round(currentSpeed)} KM/H`;
+
+        }
+    );
+
+
+   // =========================================================
+// UNIFIED FLIGHT INPUT
+// Keyboard + MPU6050/ESP32 + Touch
+// All input sources feed the same flight-control system.
+// =========================================================
+
+let mpuNeutralPitch = 0;
+let mpuNeutralRoll = 0;
+let mpuRawPitch = 0;
+let mpuRawRoll = 0;
+    
+const flightInput = {
+
+    keyboard: {
+        pitch: 0,
+        roll: 0,
+        yaw: 0,
+        throttle: 0
+    },
+
+    hardware: {
+        pitch: 0,
+        roll: 0,
+        yaw: 0,
+        throttle: 0,
+        connected: false
+    },
+
+
+    touch: {
+        pitch: 0,
+        roll: 0,
+        yaw: 0,
+        throttle: 0,
+        active: false
+    },
+
+    output: {
+        pitch: 0,
+        roll: 0,
+        yaw: 0,
+        throttle: 0
+    }
+};
+    
+const keys = {};
+   window.addEventListener(
+    'keydown',
+    e => {
+        keys[e.code] = true;
+
+        // Keyboard -> unified flight input
+        if (e.code === 'KeyW' || e.code === 'ArrowUp') {
+            flightInput.keyboard.pitch = -1;
+        }
+
+        if (e.code === 'KeyS' || e.code === 'ArrowDown') {
+            flightInput.keyboard.pitch = 1;
+        }
+
+        if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
+            flightInput.keyboard.roll = -1;
+        }
+
+        if (e.code === 'KeyD' || e.code === 'ArrowRight') {
+            flightInput.keyboard.roll = 1;
+        }
+
+        if (e.code === 'KeyQ') {
+            flightInput.keyboard.yaw = -1;
+        }
+
+        if (e.code === 'KeyE') {
+            flightInput.keyboard.yaw = 1;
+        }
+        if (
+    e.code === 'ShiftLeft' ||
+    e.code === 'ShiftRight' ||
+    e.code === 'KeyI'
+) {
+    flightInput.keyboard.throttle = 1;
+}
+
+if (
+    e.code === 'ControlLeft' ||
+    e.code === 'ControlRight' ||
+    e.code === 'KeyK'
+) {
+    flightInput.keyboard.throttle = -1;
+}
+    }
+);
+
+window.addEventListener(
+    'keyup',
+    e => {
+        keys[e.code] = false;
+
+        // Reset only when the corresponding key is released
+        if (
+            e.code === 'KeyW' ||
+            e.code === 'ArrowUp' ||
+            e.code === 'KeyS' ||
+            e.code === 'ArrowDown'
+        ) {
+            flightInput.keyboard.pitch = 0;
+        }
+
+        if (
+            e.code === 'KeyA' ||
+            e.code === 'ArrowLeft' ||
+            e.code === 'KeyD' ||
+            e.code === 'ArrowRight'
+        ) {
+            flightInput.keyboard.roll = 0;
+        }
+
+        if (e.code === 'KeyQ' || e.code === 'KeyE') {
+            flightInput.keyboard.yaw = 0;
+        }
+        if (
+    e.code === 'ShiftLeft' ||
+    e.code === 'ShiftRight' ||
+    e.code === 'KeyI' ||
+    e.code === 'ControlLeft' ||
+    e.code === 'ControlRight' ||
+    e.code === 'KeyK'
+) {
+    flightInput.keyboard.throttle = 0;
+}
+    }
+);
+function calibrateMPUNeutral() {
+
+    mpuNeutralPitch =
+        flightInput.hardware.pitch;
+
+    mpuNeutralRoll =
+        flightInput.hardware.roll;
+
+    console.log(
+        'MPU neutral calibrated:',
+        'P =',
+        mpuNeutralPitch,
+        'R =',
+        mpuNeutralRoll
+    );
+
+}
+function updateUnifiedFlightInput() {
+
+    // ---------------------------------------------------------
+    // PITCH
+    // ---------------------------------------------------------
+
+    if (flightInput.hardware.connected) {
+
+        flightInput.output.pitch =
+            THREE.MathUtils.clamp(
+                flightInput.hardware.pitch / 25,
+                -1,
+                1
+            )
+            +
+            flightInput.keyboard.pitch;
+
+    } else if (flightInput.touch.active) {
+
+        flightInput.output.pitch =
+            flightInput.touch.pitch;
+
+    } else {
+
+        flightInput.output.pitch =
+            flightInput.keyboard.pitch;
+
+    }
+
+
+    // ---------------------------------------------------------
+    // ROLL
+    // ---------------------------------------------------------
+
+    if (flightInput.hardware.connected) {
+
+        flightInput.output.roll =
+            THREE.MathUtils.clamp(
+                flightInput.hardware.roll / 45,
+                -1,
+                1
+            )
+            +
+            flightInput.keyboard.roll;
+
+    } else if (flightInput.touch.active) {
+
+        flightInput.output.roll =
+            flightInput.touch.roll;
+
+    } else {
+
+        flightInput.output.roll =
+            flightInput.keyboard.roll;
+
+    }
+
+
+    // ---------------------------------------------------------
+    // YAW
+    // ---------------------------------------------------------
+
+    if (flightInput.hardware.connected) {
+
+        // MPU currently provides pitch + roll only.
+        // Keyboard remains available for yaw.
+
+        flightInput.output.yaw =
+            flightInput.keyboard.yaw;
+
+    } else if (flightInput.touch.active) {
+
+        flightInput.output.yaw =
+            THREE.MathUtils.clamp(
+                flightInput.touch.roll * 1.5,
+                -1,
+                1
+            );
+
+    } else {
+
+        flightInput.output.yaw =
+            THREE.MathUtils.clamp(
+                flightInput.keyboard.roll * 1.5 +
+                flightInput.keyboard.yaw,
+                -1,
+                1
+            );
+
+    }
+
+
+    // ---------------------------------------------------------
+    // LIMIT COMBINED INPUT
+    // ---------------------------------------------------------
+
+    flightInput.output.pitch =
+        THREE.MathUtils.clamp(
+            flightInput.output.pitch,
+            -1,
+            1
+        );
+
+    flightInput.output.roll =
+        THREE.MathUtils.clamp(
+            flightInput.output.roll,
+            -1,
+            1
+        );
+
+    flightInput.output.yaw =
+        THREE.MathUtils.clamp(
+            flightInput.output.yaw,
+            -1,
+            1
+        );
+
+
+    // ---------------------------------------------------------
+    // THROTTLE
+    // ---------------------------------------------------------
+
+    flightInput.output.throttle =
+        flightInput.keyboard.throttle;
+}
+    
+    function updateFlightPhysics() {
+         updateUnifiedFlightInput();
+
+        if (
+            isGameOver ||
+            isPaused
+        )
+            return;
+
+
+               if (flightInput.output.throttle > 0) {
+
+            currentSpeed =
+                Math.min(
+                    1400,
+                    currentSpeed + 6
+                );
+
+        }
+
+        if (flightInput.output.throttle < 0) {
+
+            currentSpeed =
+                Math.max(
+                    0,
+                    currentSpeed - 6
+                );
+
+        }
+
+        throttleSlider.value =
+            currentSpeed;
+
+        throttleReadout.innerText =
+            `${Math.round(currentSpeed)} KM/H`;
+
+        targetRoll =
+            flightInput.output.roll * 45;
+
+       yawAngle -=
+    flightInput.output.yaw * 0.022;
+
+
+// Banking naturally contributes to the turn.
+yawAngle -=
+    Math.sin(
+        THREE.MathUtils.degToRad(
+            rollAngle
+        )
+    ) * 0.008;
+
+
+        targetPitch =
+            flightInput.output.pitch * 25;
+
+      const rollResponse =
+    THREE.MathUtils.lerp(
+        0.10,
+        0.06,
+        THREE.MathUtils.clamp(
+            (currentSpeed - 300) / 1100,
+            0,
+            1
+        )
+    );
+
+rollAngle +=
+    (
+        targetRoll -
+        rollAngle
+    ) *
+    rollResponse;
+
+
+        pitchAngle +=
+            (
+                targetPitch -
+                pitchAngle
+            ) *
+            0.18;
+// Stall warning
+const stallRisk =
+    currentSpeed < 500 &&
+    pitchAngle > 18;
+
+if (stallRisk) {
+    cameraShake =
+        Math.max(
+            cameraShake,
+            0.08
+        );
+}
+
+        const euler =
+            new THREE.Euler(
+
+                THREE.MathUtils.degToRad(
+                    pitchAngle
+                ),
+
+                yawAngle,
+
+                THREE.MathUtils.degToRad(
+                    -rollAngle
+                ),
+
+                'YXZ'
+
+            );
+
+
+        jetGroup.quaternion
+            .setFromEuler(
+                euler
+            );
+
+
+        const forward =
+            new THREE.Vector3(
+                0,
+                0,
+                -1
+            ).applyQuaternion(
+                jetGroup.quaternion
+            );
+
+const moveDist =
+    (
+        currentSpeed /
+        3.6
+    ) *
+    0.025;
+
+
+jetGroup.position
+    .addScaledVector(
+        forward,
+        moveDist
+    );
+let lift =
+    THREE.MathUtils.clamp(
+        (currentSpeed - 250) / 900,
+        0,
+        1
+    ) * 0.045;
+
+
+// Excessive pitch at low speed reduces lift.
+if (
+    currentSpeed < 500 &&
+    pitchAngle > 18
+) {
+    lift *= 0.10;
+}
+
+
+
+// Pitch controls the climb/descent attitude.
+// Positive pitchAngle = nose up.
+const verticalLift =
+    Math.sin(
+        THREE.MathUtils.degToRad(
+            pitchAngle
+        )
+    ) *
+    lift;
+
+
+jetGroup.position.y +=
+    verticalLift;
+
+        totalDistance +=
+            moveDist;
+
+
+        if (
+            jetGroup.position.y < 3
+        )
+            jetGroup.position.y =
+                3;
+
+
+        if (
+            jetGroup.position.y > 3000
+        )
+            jetGroup.position.y =
+                3000;
+
+
+        skyDome.position.copy(
+            jetGroup.position
+        );
+
+
+        sunLight.position.set(
+
+            jetGroup.position.x +
+                1200,
+
+            1800,
+
+            jetGroup.position.z +
+                800
+
+        );
+
+
+        updateChunks();
+
+
+        if (
+            cameraMode === 'TPP'
+        ) {
+
+            const offset =
+                new THREE.Vector3(
+                    0,
+                    7,
+                    24
+                ).applyQuaternion(
+                    jetGroup.quaternion
+                );
+
+
+            camera.position.copy(
+                jetGroup.position
+            ).add(
+                offset
+            );
+
+
+            camera.lookAt(
+
+                jetGroup.position
+                    .clone()
+                    .add(
+
+                        new THREE.Vector3(
+                            0,
+                            1.5,
+                            -25
+                        ).applyQuaternion(
+                            jetGroup.quaternion
+                        )
+
+                    )
+
+            );
+
+        }
+
+        else {
+
+            const offset =
+                new THREE.Vector3(
+                    0,
+                    1.2,
+                    -1.2
+                ).applyQuaternion(
+                    jetGroup.quaternion
+                );
+
+
+            camera.position.copy(
+                jetGroup.position
+            ).add(
+                offset
+            );
+
+
+            camera.lookAt(
+
+                jetGroup.position
+                    .clone()
+                    .add(
+
+                        new THREE.Vector3(
+                            0,
+                            1.2,
+                            -60
+                        ).applyQuaternion(
+                            jetGroup.quaternion
+                        )
+
+                    )
+
+            );
+
+        }
+
+    }
+
+
+ // =========================================================
+// SERIAL
+// =========================================================
+
+let espConnected = false;
+let serialPort = null;
+let serialReader = null;
+let lastSerialDataTime = 0;
+
+let serialCleanupPromise = null;
+let serialSession = 0;
+
+
+// ---------------------------------------------------------
+// SERIAL CLEANUP
+// ---------------------------------------------------------
+
+async function cleanupSerial() {
+
+    if (serialCleanupPromise) {
+        return serialCleanupPromise;
+    }
+
+    serialCleanupPromise = (async () => {
+
+        const reader = serialReader;
+        const port = serialPort;
+
+        serialReader = null;
+
+        // Stop the reader first.
+        if (reader) {
+
+            try {
+                await reader.cancel();
+            } catch (e) {}
+
+            try {
+                reader.releaseLock();
+            } catch (e) {}
+
+        }
+
+        // Now the readable stream is unlocked,
+        // so the port can actually close.
+        if (port) {
+
+            try {
+                await port.close();
+            } catch (e) {
+
+                console.log(
+                    'Serial close:',
+                    e
+                );
+
+            }
+
+        }
+
+        if (serialPort === port) {
+            serialPort = null;
+        }
+
+    })();
+
+    try {
+        await serialCleanupPromise;
+    } finally {
+        serialCleanupPromise = null;
+    }
+
+}
+
+
+// ---------------------------------------------------------
+// HARDWARE DISCONNECT
+// ---------------------------------------------------------
+
+async function handleHardwareDisconnect() {
+
+    espConnected = false;
+
+    flightInput.hardware.connected = false;
+
+    flightInput.hardware.pitch = 0;
+    flightInput.hardware.roll = 0;
+    flightInput.hardware.yaw = 0;
+    flightInput.hardware.throttle = 0;
+
+    targetPitch = 0;
+    targetRoll = 0;
+
+    lastSerialDataTime = 0;
+
+    const connectButton =
+        document.getElementById('connect-btn');
+
+    connectButton.innerText =
+        'Connect Serial';
+
+    connectButton.style.background =
+        '';
+
+    refreshScoreUI();
+
+    await cleanupSerial();
+
+}
+
+
+// ---------------------------------------------------------
+// SERIAL CONNECTION WATCHDOG
+// ---------------------------------------------------------
+
+setInterval(() => {
+
+    if (!espConnected || !serialPort) {
+        return;
+    }
+
+    if (
+        lastSerialDataTime > 0 &&
+        Date.now() - lastSerialDataTime > 3000
+    ) {
+
+        console.log(
+            'MPU watchdog: connection lost'
+        );
+
+        handleHardwareDisconnect();
+
+        return;
+    }
+
+    if (
+        serialPort.connected === false
+    ) {
+
+        console.log(
+            'MPU port: disconnected'
+        );
+
+        handleHardwareDisconnect();
+
+    }
+
+}, 250);
+
+
+// ---------------------------------------------------------
+// CONNECT BUTTON
+// ---------------------------------------------------------
+
+document
+    .getElementById('connect-btn')
+    .addEventListener(
+        'click',
+        async () => {
+
+            if (!('serial' in navigator)) {
+
+                alert(
+                    'Web Serial is not supported in this browser.'
+                );
+
+                return;
+            }
+
+            // Wait for any previous cleanup.
+            if (serialCleanupPromise) {
+
+                await serialCleanupPromise;
+
+            }
+
+            const thisSession =
+                ++serialSession;
+
+            try {
+
+                const port =
+                    await navigator
+                        .serial
+                        .requestPort();
+
+                // If another connection attempt won
+                // while the chooser was open, stop here.
+                if (
+                    thisSession !== serialSession
+                ) {
+                    return;
+                }
+
+                serialPort = port;
+
+
+                // -------------------------------------------------
+                // SAFETY: if the browser still considers this port
+                // open, close it before opening a new session.
+                // -------------------------------------------------
+
+                if (
+                    serialPort.readable ||
+                    serialPort.writable
+                ) {
+
+                    try {
+
+                        await serialPort.close();
+
+                    } catch (e) {
+
+                        console.log(
+                            'Existing serial session:',
+                            e
+                        );
+
+                    }
+
+                }
+
+
+                await serialPort.open({
+                    baudRate: 115200
+                });
+
+
+                // -------------------------------------------------
+                // CREATE READER
+                // -------------------------------------------------
+
+                const reader =
+                    serialPort
+                        .readable
+                        .getReader();
+
+                serialReader = reader;
+
+                let buffer = '';
+
+
+                // -------------------------------------------------
+                // READ LOOP
+                // -------------------------------------------------
+
+                while (
+                    thisSession === serialSession
+                ) {
+
+                    const {
+                        value,
+                        done
+                    } =
+                        await reader.read();
+
+
+                    if (done) {
+                        break;
+                    }
+
+
+                    if (!value) {
+                        continue;
+                    }
+
+
+                    const text =
+                        new TextDecoder()
+                            .decode(value);
+
+                    buffer += text;
+
+
+                    const lines =
+                        buffer.split('\n');
+
+                    buffer =
+                        lines.pop();
+
+
+                    for (
+                        const line
+                        of lines
+                    ) {
+
+                        const cleanLine =
+                            line.trim();
+
+                        if (!cleanLine) {
+                            continue;
+                        }
+
+
+                        const parts =
+                            cleanLine.split(',');
+
+                        let validData = false;
+
+
+                        parts.forEach(
+                            part => {
+
+                                const [
+                                    k,
+                                    v
+                                ] =
+                                    part.split(':');
+
+                                const number =
+                                    parseFloat(v);
+
+
+                               if (
+    k === 'P' &&
+    Number.isFinite(number)
+) {
+
+    mpuRawPitch = number;
+
+    flightInput
+        .hardware
+        .pitch =
+        mpuRawPitch - mpuNeutralPitch;
+
+    validData = true;
+
+}
+
+                                if (
+    k === 'R' &&
+    Number.isFinite(number)
+) {
+
+    mpuRawRoll = number;
+
+    flightInput
+        .hardware
+        .roll =
+        mpuRawRoll - mpuNeutralRoll;
+
+    validData = true;
+
+}
+                            }
+                        );
+
+
+                        if (validData) {
+
+                            lastSerialDataTime =
+                                Date.now();
+
+
+                            if (!espConnected) {
+
+                                espConnected =
+                                    true;
+
+                                flightInput
+                                    .hardware
+                                    .connected =
+                                    true;
+
+
+                                document
+                                    .getElementById(
+                                        'connect-btn'
+                                    )
+                                    .innerText =
+                                    'Connected';
+
+
+                                document
+                                    .getElementById(
+                                        'connect-btn'
+                                    )
+                                    .style.background =
+                                    '#38bdf8';
+
+
+                                refreshScoreUI();
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+            catch (e) {
+
+                console.log(
+                    'Serial connection:',
+                    e
+                );
+
+                // Only clean up if this is still
+                // the active serial session.
+                if (
+                    thisSession === serialSession
+                ) {
+
+                    await handleHardwareDisconnect();
+
+                }
+
+            }
+
+            finally {
+
+                if (
+                    thisSession === serialSession &&
+                    serialReader
+                ) {
+
+                    try {
+                        serialReader.releaseLock();
+                    } catch (e) {}
+
+                    serialReader = null;
+
+                }
+
+            }
+
+        }
+    );
+
+
+// ---------------------------------------------------------
+// PHYSICAL DISCONNECT EVENT
+// ---------------------------------------------------------
+
+if ('serial' in navigator) {
+
+    navigator.serial.addEventListener(
+        'disconnect',
+        event => {
+
+            if (
+                serialPort &&
+                event.target === serialPort
+            ) {
+
+                console.log(
+                    'Web Serial disconnect event'
+                );
+
+                handleHardwareDisconnect();
+
+            }
+
+        }
+    );
+
+}
+    // =========================================================
+    // COLLISION
+    // =========================================================
+
+    function checkCollisions() {
+
+        if (
+            isGameOver
+        )
+            return;
+
+
+        const jetBox =
+            new THREE.Box3()
+                .setFromObject(
+                    jetGroup
+                );
+
+
+        activeChunks.forEach(
+            chunk => {
+
+                chunk.obstacles.forEach(
+                    obs => {
+
+                        if (
+                            jetBox.intersectsBox(
+                                obs.box
+                            )
+                        ) {
+
+                            isGameOver =
+                                true;
+                            setCrashState();
+
+
+                            document
+                                .getElementById(
+                                    'gameover-overlay'
+                                )
+                                .style.display =
+                                'flex';
+
+
+                            document
+                                .getElementById(
+                                    'final-dist-txt'
+                                )
+                                .innerText =
+                                `DISTANCE FLOWN: ${Math.round(totalDistance)} M`;
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+    }
+
+
+    // =========================================================
+    // UI CONTROLS
+    // =========================================================
+
+    document
+        .getElementById('view-btn')
+        .addEventListener(
+            'click',
+            () => {
+
+                cameraMode =
+                    cameraMode === 'TPP'
+                        ? 'FPP'
+                        : 'TPP';
+
+
+                document
+                    .getElementById(
+                        'view-btn'
+                    )
+                    .innerText =
+                    `View: ${cameraMode}`;
+
+            }
+        );
+
+
+    document
+        .getElementById('pause-btn')
+        .addEventListener(
+            'click',
+            () => {
+
+                isPaused =
+                    !isPaused;
+
+
+                document
+                    .getElementById(
+                        'pause-btn'
+                    )
+                    .innerText =
+                    isPaused
+                        ? 'Resume'
+                        : 'Pause';
+
+            }
+        );
+
+
+    document
+        .getElementById('recenter-btn')
+        .addEventListener(
+            'click',
+            () => {
+
+                jetGroup.position.set(
+                    0,
+                    85,
+                    0
+                );
+
+
+                yawAngle = 0;
+
+                pitchAngle = 0;
+
+                rollAngle = 0;
+
+            }
+        );
+
+
+    document
+        .getElementById('restart-bar-btn')
+        .addEventListener(
+            'click',
+            resetSimulation
+        );
+
+
+    document
+        .getElementById('restart-overlay-btn')
+        .addEventListener(
+            'click',
+            resetSimulation
+        );
+
+
+    const modal =
+        document.getElementById(
+            'controls-modal'
+        );
+
+
+    document
+        .getElementById('controls-btn')
+        .addEventListener(
+            'click',
+            () => {
+
+                modal.style.display =
+                    'block';
+
+            }
+        );
+
+    document
+    .getElementById('calibrate-mpu-btn')
+    .addEventListener(
+        'click',
+        () => {
+
+            if (
+                !flightInput.hardware.connected
+            ) {
+
+                alert(
+                    'Connect the MPU6050 first.'
+                );
+
+                return;
+            }
+
+            calibrateMPUNeutral();
+
+            alert(
+                'MPU neutral position calibrated.'
+            );
+
+        }
+    );
+
+    document
+        .getElementById('close-modal-btn')
+        .addEventListener(
+            'click',
+            () => {
+
+                modal.style.display =
+                    'none';
+
+            }
+        );
+
+
+
+    document.getElementById('continue-btn').addEventListener('click',()=>{
+        document.getElementById('mission-complete').style.display='none';
+        isPaused=false;
+        seedGates();
+    });
+
+    window.addEventListener('keydown',e=>{
+        if(e.code==='KeyP' && !introActive && !isGameOver){
+            isPaused=!isPaused;
+            document.getElementById('pause-btn').innerText=isPaused?'Resume':'Pause';
+            document.getElementById('pause-screen').style.display=isPaused?'grid':'none';
+        }
+        if(e.code==='KeyC' && !introActive){
+            cameraMode=cameraMode==='TPP'?'FPP':'TPP';
+            document.getElementById('view-btn').innerText=`View: ${cameraMode}`;
+            document.getElementById('cockpit-frame').style.display=cameraMode==='FPP'?'block':'none';
+        }
+    });
+
+    function resetSimulation() {
+
+        document
+            .getElementById(
+                'gameover-overlay'
+            )
+            .style.display =
+            'none';
+
+
+        jetGroup.position.set(
+            0,
+            85,
+            0
+        );
+
+
+        yawAngle = 0;
+
+        pitchAngle = 0;
+
+        rollAngle = 0;
+
+        targetRoll = 0;
+
+        targetPitch = 0;
+
+        totalDistance = 0;
+        score = 0;
+        completedGates = 0;
+        missionIndex = 0;
+        document.getElementById('mission-complete').style.display='none';
+        seedGates(true);
+
+        isGameOver = false;
+
+        isPaused = false;
+
+
+        currentSpeed = 450;
+
+        throttleSlider.value =
+            450;
+
+        throttleReadout.innerText =
+            "450 KM/H";
+
+    }
+
+
+    // =========================================================
+    // INTRO
+    // =========================================================
+
+    function finishIntro() {
+
+        if (
+            introFinished
+        )
+            return;
+
+
+        introFinished =
+            true;
+
+
+        introActive =
+            false;
+
+
+        jetGroup.position.set(
+            0,
+            85,
+            0
+        );
+
+
+        yawAngle = 0;
+
+        pitchAngle = 0;
+
+        rollAngle = 0;
+
+        targetRoll = 0;
+
+        targetPitch = 0;
+
+        currentSpeed = 450;
+
+        totalDistance = 0;
+
+        isPaused = false;
+        document.getElementById('pause-screen').style.display='none';
+        document.getElementById('mission-complete').style.display='none';
+
+        isGameOver = false;
+
+
+        jetGroup.quaternion.set(
+            0,
+            0,
+            0,
+            1
+        );
+
+
+        throttleSlider.value =
+            450;
+
+
+        throttleReadout.innerText =
+            "450 KM/H";
+
+
+        jetGroup.visible =
+            true;
+
+
+        const originalOffset =
+            new THREE.Vector3(
+                0,
+                7,
+                24
+            ).applyQuaternion(
+                jetGroup.quaternion
+            );
+
+
+        camera.position.copy(
+            jetGroup.position
+        ).add(
+            originalOffset
+        );
+
+
+        camera.lookAt(
+
+            jetGroup.position
+                .clone()
+                .add(
+
+                    new THREE.Vector3(
+                        0,
+                        1.5,
+                        -25
+                    ).applyQuaternion(
+                        jetGroup.quaternion
+                    )
+
+                )
+
+        );
+
+
+        cinematicTitle.style.opacity =
+            '0';
+
+
+        introScreen.style.opacity =
+            '0';
+
+
+        introScreen.style.pointerEvents =
+            'none';
+
+
+        setTimeout(
+            () => {
+
+                introScreen.style.display =
+                    'none';
+
+
+                cinematicTitle.style.display =
+                    'none';
+
+
+                showGameUI();
+
+            },
+            500
+        );
+
+    }
+
+
+    function startIntro() {
+
+        if (
+            introStarted ||
+            introFinished
+        )
+            return;
+
+
+        introStarted =
+            true;
+
+
+        try {
+
+            updateChunks();
+
+        }
+
+        catch (e) {
+
+        }
+
+
+        introContent.style.transform =
+            'scale(1.12)';
+
+
+        introContent.style.opacity =
+            '0';
+
+
+        setTimeout(
+            () => {
+
+                if (
+                    introFinished
+                )
+                    return;
+
+
+                introScreen.style.background =
+                    'rgba(3,7,18,0)';
+
+
+                introScreen.style.pointerEvents =
+                    'none';
+
+
+                jetGroup.visible =
+                    true;
+
+            },
+            250
+        );
+
+
+        setTimeout(
+            () => {
+
+                if (
+                    introFinished
+                )
+                    return;
+
+
+                const cinematicStart =
+                    new THREE.Vector3(
+                        -95,
+                        35,
+                        115
+                    );
+
+
+                camera.position.copy(
+                    cinematicStart
+                );
+
+
+                camera.lookAt(
+                    jetGroup.position
+                );
+
+            },
+            350
+        );
+
+
+        setTimeout(
+            () => {
+
+                if (
+                    introFinished
+                )
+                    return;
+
+
+                jetGroup.position.set(
+                    -180,
+                    70,
+                    150
+                );
+
+
+                jetGroup.lookAt(
+                    0,
+                    85,
+                    0
+                );
+
+
+                camera.lookAt(
+                    jetGroup.position
+                );
+
+            },
+            650
+        );
+
+
+        setTimeout(
+            () => {
+
+                if (
+                    introFinished
+                )
+                    return;
+
+
+                jetGroup.position.set(
+                    -55,
+                    78,
+                    45
+                );
+
+
+                jetGroup.lookAt(
+                    120,
+                    95,
+                    -250
+                );
+
+
+                camera.position.set(
+                    55,
+                    55,
+                    100
+                );
+
+
+                camera.lookAt(
+                    jetGroup.position
+                );
+
+
+                introFlash.style.transition =
+                    'opacity 0.12s ease';
+
+
+                introFlash.style.opacity =
+                    '0.16';
+
+
+                setTimeout(
+                    () => {
+
+                        introFlash.style.opacity =
+                            '0';
+
+                    },
+                    120
+                );
+
+            },
+            1100
+        );
+
+
+        setTimeout(
+            () => {
+
+                if (
+                    introFinished
+                )
+                    return;
+
+
+                camera.position.set(
+                    35,
+                    105,
+                    155
+                );
+
+
+                camera.lookAt(
+                    jetGroup.position
+                );
+
+            },
+            1450
+        );
+
+
+        setTimeout(
+            () => {
+
+                if (
+                    introFinished
+                )
+                    return;
+
+
+                cinematicTitle.style.display =
+                    'flex';
+
+
+                cinematicTitle.style.opacity =
+                    '1';
+
+
+                cinematicTitleText.style.transform =
+                    'scale(1)';
+
+            },
+            1900
+        );
+
+
+        setTimeout(
+            () => {
+
+                if (
+                    introFinished
+                )
+                    return;
+
+
+                cinematicTitle.style.transition =
+                    'opacity 0.45s ease';
+
+
+                cinematicTitle.style.opacity =
+                    '0';
+
+            },
+            2750
+        );
+
+
+        setTimeout(
+            () => {
+
+                finishIntro();
+
+            },
+            3350
+        );
+
+
+        setTimeout(
+            () => {
+
+                finishIntro();
+
+            },
+            5500
+        );
+
+    }
+
+
+    // =========================================================
+    // INTRO TOUCH / POINTER
+    // =========================================================
+
+    function launchFromUserInput(e) {
+
+        if (
+            introStarted ||
+            introFinished
+        )
+            return;
+
+
+        if (
+            e &&
+            e.preventDefault
+        ) {
+
+            e.preventDefault();
+
+        }
+
+
+        startIntro();
+
+    }
+
+
+    // Flight only launches from an explicit tap/click on the
+    // Main Menu's "Start Flight" button (id="start-flight-btn").
+    // Any other menu button (Aircraft Select, Settings, etc.)
+    // will not trigger the launch.
+    const startFlightBtn =
+        document.getElementById(
+            'start-flight-btn'
+        );
+
+    if (startFlightBtn) {
+
+        startFlightBtn.addEventListener(
+            'click',
+            launchFromUserInput
+        );
+
+        startFlightBtn.addEventListener(
+            'pointerdown',
+            e => {
+                e.stopPropagation();
+            },
+            { passive: false }
+        );
+
+    }
+
+    // =========================================================
+    // MOBILE TOUCH FLIGHT CONTROL
+    // =========================================================
+
+    let touchControlActive =
+        false;
+
+
+    let touchPointerId =
+        null;
+
+
+    let touchStartX =
+        0;
+
+
+    let touchStartY =
+        0;
+
+
+    let touchLastX =
+        0;
+
+
+    let touchLastY =
+        0;
+
+
+    const TOUCH_ROLL_SENSITIVITY =
+        0.65;
+
+
+    const TOUCH_PITCH_SENSITIVITY =
+        0.22;
+
+
+    function isUIElement(
+        target
+    ) {
+
+        if (!target)
+            return false;
+
+
+        return (
+            target.closest(
+                '#top-bar'
+            ) ||
+            target.closest(
+                '#throttle-panel'
+            ) ||
+            target.closest(
+                '#bottom-bar'
+            ) ||
+            target.closest(
+                '#controls-modal'
+            ) ||
+            target.closest(
+                '#gameover-overlay'
+            )
+        );
+
+    }
+
+
+    renderer.domElement.addEventListener(
+        'pointerdown',
+        e => {
+
+            if (
+                introActive ||
+                isGameOver ||
+                isPaused
+            )
+                return;
+
+
+            if (
+                e.pointerType !== 'touch'
+            )
+                return;
+
+
+            if (
+                isUIElement(e.target)
+            )
+                return;
+
+
+            touchControlActive =
+                true;
+            flightInput.touch.active =
+                true;
+
+
+            touchPointerId =
+                e.pointerId;
+
+
+            touchStartX =
+                e.clientX;
+
+
+            touchStartY =
+                e.clientY;
+
+
+            touchLastX =
+                e.clientX;
+
+
+            touchLastY =
+                e.clientY;
+
+
+            try {
+
+                renderer.domElement
+                    .setPointerCapture(
+                        e.pointerId
+                    );
+
+            }
+
+            catch (err) {}
+
+        },
+        {
+            passive: false
+        }
+    );
+
+
+    renderer.domElement.addEventListener(
+        'pointermove',
+        e => {
+
+            if (
+                !touchControlActive
+            )
+                return;
+
+
+            if (
+                e.pointerId !==
+                touchPointerId
+            )
+                return;
+
+
+            e.preventDefault();
+
+
+            const dx =
+                e.clientX -
+                touchStartX;
+
+
+            const dy =
+                e.clientY -
+                touchStartY;
+
+
+            touchLastX =
+                e.clientX;
+
+
+            touchLastY =
+                e.clientY;
+
+
+flightInput.touch.roll =
+    THREE.MathUtils.clamp(
+        (
+            dx *
+            TOUCH_ROLL_SENSITIVITY
+        ) / 45,
+        -1,
+        1
+    );
+
+
+flightInput.touch.pitch =
+    THREE.MathUtils.clamp(
+        (
+            dy *
+            TOUCH_PITCH_SENSITIVITY
+        ) / 25,
+        -1,
+        1
+    );
+
+        },
+        {
+            passive: false
+        }
+    );
+
+
+function endTouchControl(e) {
+
+    if (
+        e &&
+        touchPointerId !== null &&
+        e.pointerId !==
+            touchPointerId
+    )
+        return;
+
+
+    touchControlActive =
+        false;
+
+
+    flightInput.touch.active =
+        false;
+
+
+    flightInput.touch.roll =
+        0;
+
+
+    flightInput.touch.pitch =
+        0;
+
+
+    touchPointerId =
+        null;
+
+
+    if (
+        !espConnected
+    ) {
+
+        targetRoll =
+            0;
+
+
+        targetPitch =
+            0;
+
+    }
+
+}
+
+
+    renderer.domElement.addEventListener(
+        'pointerup',
+        endTouchControl,
+        {
+            passive: false
+        }
+    );
+
+
+    renderer.domElement.addEventListener(
+        'pointercancel',
+        endTouchControl,
+        {
+            passive: false
+        }
+    );
+
+
+    renderer.domElement.addEventListener(
+        'lostpointercapture',
+        endTouchControl,
+        {
+            passive: false
+        }
+    );
+
+
+    // =========================================================
+    // ANIMATION LOOP
+    // =========================================================
+
+    function animate() {
+
+        requestAnimationFrame(
+            animate
+        );
+
+
+        if (
+            !introActive
+        ) {
+
+            updateFlightPhysics();
+
+            checkCollisions();
+            updateGameplay();
+
+        }
+
+        // Ambient world motion: clouds drift while the distant horizon
+        // remains far away around the player.
+        cloudsGroup.position.x = jetGroup.position.x;
+        cloudsGroup.position.z = jetGroup.position.z;
+
+        horizonGroup.position.x = jetGroup.position.x;
+        horizonGroup.position.z = jetGroup.position.z;
+
+        cloudsGroup.children.forEach((c)=>{
+            c.position.x += c.userData.drift || 0.016;
+            if(c.position.x > 7000) c.position.x = -7000;
+        });
+        const thrustPulse = 1 + Math.sin(performance.now()*0.018)*0.06;
+        jetGroup.children.forEach(child=>{
+            if(child.geometry && child.geometry.type === 'ConeGeometry' && child.material &&
+               child.material.color && child.material.color.getHex() === 0x38bdf8){
+                child.scale.z = thrustPulse;
+            }
+        });
+
+        if(cameraShake>0){
+            cameraShake*=.82;
+            camera.position.x += (Math.random()-.5)*cameraShake*.45;
+            camera.position.y += (Math.random()-.5)*cameraShake*.3;
+        }
+        refreshScoreUI();
+
+
+        document
+            .getElementById(
+                'speed-val'
+            )
+            .innerText =
+            `${Math.round(currentSpeed)} km/h`;
+
+
+        document
+            .getElementById(
+                'alt-val'
+            )
+            .innerText =
+            `${Math.round(
+                jetGroup.position.y
+            )} m`;
+
+
+        let degHeading =
+            Math.round(
+
+                (
+                    THREE.MathUtils
+                        .radToDeg(
+                            yawAngle
+                        ) %
+                    360 +
+                    360
+                ) % 360
+
+            );
+
+
+        document
+            .getElementById(
+                'heading-val'
+            )
+            .innerText =
+            `${String(
+                degHeading
+            ).padStart(
+                3,
+                '0'
+            )}°`;
+
+
+        renderer.render(
+            scene,
+            camera
+        );
+
+    }
+
+
+    // =========================================================
+    // RESIZE
+    // =========================================================
+
+    window.addEventListener(
+        'resize',
+        () => {
+
+            camera.aspect =
+                window.innerWidth /
+                window.innerHeight;
+
+
+            camera.updateProjectionMatrix();
+
+
+            renderer.setSize(
+                window.innerWidth,
+                window.innerHeight
+            );
+
+        }
+    );
+
+
+    // =========================================================
+    // START
+    // =========================================================
+
+    jetGroup.position.set(
+        0,
+        85,
+        0
+    );
+
+
+    yawAngle = 0;
+
+    pitchAngle = 0;
+
+    rollAngle = 0;
+
+    targetRoll = 0;
+
+    targetPitch = 0;
+
+    currentSpeed = 450;
+
+
+    jetGroup.quaternion.set(
+        0,
+        0,
+        0,
+        1
+    );
+
+
+    // Initial navigation route is created after the world and aircraft exist.
+    seedGates(true);
+
+    // Start rendering immediately.
+    // Flight physics begin only after intro.
+
+    animate();
+
+</script>
+
+</body>
+</html>
